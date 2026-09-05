@@ -75,7 +75,7 @@ export default function UniversityPortal() {
   const [successId, setSuccessId] = useState<string | null>(null);
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 60px' }}>
+    <div className="page-container" style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 60px' }}>
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="animate-fade-in-up" style={{ marginBottom: 28 }}>
         <div
@@ -113,11 +113,8 @@ export default function UniversityPortal() {
 
       {/* ── Stats Row ────────────────────────────────────────────── */}
       <div
-        className="animate-fade-in-up"
+        className="university-stat-grid animate-fade-in-up"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 16,
           marginBottom: 28,
           animationDelay: '0.05s',
         }}

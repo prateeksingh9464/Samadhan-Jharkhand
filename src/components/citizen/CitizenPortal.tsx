@@ -337,6 +337,7 @@ export default function CitizenPortal() {
   return (
     <>
       <div
+        className="page-container"
         style={{
           maxWidth: 1100,
           margin: '0 auto',
@@ -451,12 +452,7 @@ export default function CitizenPortal() {
         {/* Main grid: form + AI panel */}
         {activeTab === 'report' && (
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)',
-            gap: 24,
-            alignItems: 'start',
-          }}
+          className="citizen-main-grid"
         >
           {/* ─── Form ──────────────────────────────────────────────── */}
           <form
@@ -489,10 +485,8 @@ export default function CitizenPortal() {
 
             {/* District + Category row */}
             <div
+              className="form-grid-2col"
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 16,
                 marginBottom: 20,
               }}
             >
@@ -1058,7 +1052,7 @@ export default function CitizenPortal() {
                     {L.viewTimeline}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
                     {STAGE_CONFIG.map((stage, idx) => {
                       const currentIdx = STATUS_STEPS.indexOf(trackedProblem.status);
                       const isPassed = idx < currentIdx;

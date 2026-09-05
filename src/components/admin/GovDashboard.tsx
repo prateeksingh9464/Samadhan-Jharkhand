@@ -215,7 +215,7 @@ export default function GovDashboard() {
   );
 
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto', padding: '28px 20px 80px' }}>
+    <div className="page-container" style={{ maxWidth: 1240, margin: '0 auto', padding: '28px 20px 80px' }}>
       {/* ─── Header & State Identity ────────────────────────────────────── */}
       <div className="animate-fade-in-up" style={{ marginBottom: 28 }}>
         <div
@@ -331,7 +331,7 @@ export default function GovDashboard() {
         className="animate-fade-in-up"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
           gap: 16,
           marginBottom: 28,
           animationDelay: '0.05s',
@@ -427,12 +427,7 @@ export default function GovDashboard() {
 
         {/* Visual Pipeline Funnel Steps */}
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: 12,
-            position: 'relative',
-          }}
+          className="gov-lifecycle-grid"
         >
           {LIFECYCLE_STEPS.map((step, idx) => {
             const cfg = STATUS_CONFIG[step];
@@ -546,7 +541,7 @@ export default function GovDashboard() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
             gap: 16,
           }}
         >
@@ -848,10 +843,14 @@ export default function GovDashboard() {
             <p style={{ fontSize: '0.78rem', marginTop: 4 }}>Try clearing search keywords or selecting all districts.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="table-responsive-wrapper">
+            <div className="mobile-table-hint">
+              👈 Swipe horizontally to view all columns & actions 👉
+            </div>
             <table
               style={{
                 width: '100%',
+                minWidth: 720,
                 borderCollapse: 'separate',
                 borderSpacing: '0 8px',
                 fontSize: '0.82rem',

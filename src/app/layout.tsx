@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from './providers';
 
@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: 'Samadhan Jharkhand — Societal Innovation Collaboration Portal',
   description:
     'Citizen problem submission platform with AI-powered categorization and routing to Higher Education Institutions, industry CSR funding, and government oversight. Smart India Hackathon 2026 prototype.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({

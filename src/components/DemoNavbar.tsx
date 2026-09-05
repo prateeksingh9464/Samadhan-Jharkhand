@@ -29,14 +29,19 @@ export default function DemoNavbar() {
       style={{
         position: 'sticky',
         top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
         zIndex: 50,
         background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        boxSizing: 'border-box',
       }}
     >
       {/* Main nav */}
       <div
+        className="navbar-container"
         style={{
           maxWidth: 1200,
           margin: '0 auto',
@@ -46,10 +51,12 @@ export default function DemoNavbar() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
+          boxSizing: 'border-box',
+          width: '100%',
         }}
       >
         {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div
             style={{
               width: 36,
@@ -62,17 +69,21 @@ export default function DemoNavbar() {
               fontWeight: 800,
               fontSize: '0.9rem',
               color: '#fff',
+              flexShrink: 0,
             }}
           >
             सJ
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div
               style={{
                 fontWeight: 800,
                 fontSize: '1.05rem',
                 color: '#fff',
                 lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               Samadhan Jharkhand
@@ -82,6 +93,9 @@ export default function DemoNavbar() {
                 fontSize: '0.7rem',
                 color: 'rgba(255,255,255,0.7)',
                 fontWeight: 500,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               Societal Innovation Collaboration Portal
@@ -91,12 +105,7 @@ export default function DemoNavbar() {
 
         {/* Role switcher */}
         <nav
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            flexWrap: 'wrap',
-          }}
+          className="navbar-role-nav"
         >
           {ROLES.map((r) => (
             <button
@@ -105,10 +114,10 @@ export default function DemoNavbar() {
               className={
                 r === role ? 'role-pill role-pill-active' : 'role-pill role-pill-inactive'
               }
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
             >
               {ROLE_ICONS[r]}
-              {ROLE_LABELS[r]}
+              <span>{ROLE_LABELS[r]}</span>
             </button>
           ))}
         </nav>

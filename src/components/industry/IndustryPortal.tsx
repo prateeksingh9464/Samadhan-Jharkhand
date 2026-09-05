@@ -85,7 +85,7 @@ export default function IndustryPortal() {
   );
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 60px' }}>
+    <div className="page-container" style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 60px' }}>
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="animate-fade-in-up" style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
@@ -116,11 +116,8 @@ export default function IndustryPortal() {
 
       {/* ── KPI Row ──────────────────────────────────────────────── */}
       <div
-        className="animate-fade-in-up"
+        className="industry-kpi-grid animate-fade-in-up"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 14,
           marginBottom: 28,
           animationDelay: '0.05s',
         }}
@@ -153,13 +150,12 @@ export default function IndustryPortal() {
 
       {/* ── Filter Bar ───────────────────────────────────────────── */}
       <div
-        className="animate-fade-in-up"
+        className="mobile-scroll-filters animate-fade-in-up"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 8,
           marginBottom: 20,
-          flexWrap: 'wrap',
           animationDelay: '0.1s',
         }}
       >
