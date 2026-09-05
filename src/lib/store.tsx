@@ -30,6 +30,12 @@ const SEED_PROBLEMS: Problem[] = [
     fundingAmount: 0,
     submittedAt: '2026-08-15T09:30:00+05:30',
     geoCoords: { lat: 23.7957, lng: 86.4304 },
+    submitterType: 'Individual',
+    comments: [],
+    milestones: [],
+    patentsCount: 0,
+    startupsCreated: 0,
+    publicationsCount: 0,
   },
   {
     id: 'JH-PRB-2026-1002',
@@ -47,6 +53,20 @@ const SEED_PROBLEMS: Problem[] = [
     fundingAmount: 0,
     submittedAt: '2026-08-20T14:15:00+05:30',
     geoCoords: { lat: 24.0268, lng: 84.0531 },
+    submitterType: 'PRI',
+    comments: [
+      {
+        id: 'c-seed-1',
+        author: 'Block Development Officer, Daltonganj',
+        role: 'government' as Role,
+        text: 'This has been flagged as a priority issue by the District Collector. Request expedited routing to BAU.',
+        timestamp: '2026-08-21T10:00:00+05:30',
+      },
+    ],
+    milestones: [],
+    patentsCount: 0,
+    startupsCreated: 0,
+    publicationsCount: 0,
   },
   {
     id: 'JH-PRB-2026-1003',
@@ -62,8 +82,34 @@ const SEED_PROBLEMS: Problem[] = [
     assignedTeam: 'NIT-J Water Research Lab',
     industrySponsor: '',
     fundingAmount: 0,
+    preferredSponsor: 'Central Coalfields Ltd (CCL) CSR',
     submittedAt: '2026-07-10T11:00:00+05:30',
     geoCoords: { lat: 23.9925, lng: 85.3637 },
+    submitterType: 'CommunityOrg',
+    comments: [
+      {
+        id: 'c-seed-2',
+        author: 'Dr. Rajesh Kumar, NIT-J',
+        role: 'university' as Role,
+        text: 'Our lab has initiated water sample collection from 15 hand-pump sites. Preliminary results expected within 2 weeks.',
+        timestamp: '2026-07-25T14:30:00+05:30',
+      },
+      {
+        id: 'c-seed-3',
+        author: 'Hazaribagh Jal Sahiya Network',
+        role: 'citizen' as Role,
+        text: 'We can help coordinate sample collection across Barkagaon. 8 trained Jal Sahiyas are available.',
+        timestamp: '2026-07-27T09:15:00+05:30',
+      },
+    ],
+    milestones: [
+      { label: 'Water sample collection & lab analysis', targetDate: '2026-08-15', completed: true },
+      { label: 'Prototype arsenic filter design', targetDate: '2026-09-30', completed: false },
+      { label: 'Community pilot deployment in 5 villages', targetDate: '2026-11-15', completed: false },
+    ],
+    patentsCount: 0,
+    startupsCreated: 0,
+    publicationsCount: 1,
   },
   {
     id: 'JH-PRB-2026-1004',
@@ -81,6 +127,31 @@ const SEED_PROBLEMS: Problem[] = [
     fundingAmount: 1250000,
     submittedAt: '2026-06-25T16:45:00+05:30',
     geoCoords: { lat: 23.0741, lng: 85.2787 },
+    submitterType: 'PRI',
+    comments: [
+      {
+        id: 'c-seed-4',
+        author: 'BAU Lac Research Division',
+        role: 'university' as Role,
+        text: 'Solar drying unit prototype tested successfully. Ready for field trial in 3 villages.',
+        timestamp: '2026-08-10T11:00:00+05:30',
+      },
+      {
+        id: 'c-seed-5',
+        author: 'Tata Steel CSR Foundation',
+        role: 'industry' as Role,
+        text: 'CSR grant of ₹12.5L approved. First tranche of ₹5L released for prototype procurement.',
+        timestamp: '2026-08-15T16:00:00+05:30',
+      },
+    ],
+    milestones: [
+      { label: 'Literature review & field survey', targetDate: '2026-07-30', completed: true },
+      { label: 'Solar drying unit prototype', targetDate: '2026-09-15', completed: true },
+      { label: 'Community pilot in 3 villages', targetDate: '2026-11-01', completed: false },
+    ],
+    patentsCount: 1,
+    startupsCreated: 0,
+    publicationsCount: 2,
   },
   {
     id: 'JH-PRB-2026-1005',
@@ -98,6 +169,12 @@ const SEED_PROBLEMS: Problem[] = [
     fundingAmount: 0,
     submittedAt: '2026-09-01T08:20:00+05:30',
     geoCoords: { lat: 23.0437, lng: 84.5419 },
+    submitterType: 'GovDepartment',
+    comments: [],
+    milestones: [],
+    patentsCount: 0,
+    startupsCreated: 0,
+    publicationsCount: 0,
   },
   {
     id: 'JH-PRB-2026-1006',
@@ -115,8 +192,56 @@ const SEED_PROBLEMS: Problem[] = [
     fundingAmount: 0,
     submittedAt: '2026-09-03T10:00:00+05:30',
     geoCoords: { lat: 22.5726, lng: 86.2029 },
+    submitterType: 'Individual',
+    comments: [],
+    milestones: [],
+    patentsCount: 0,
+    startupsCreated: 0,
+    publicationsCount: 0,
   },
 ];
+
+// ─── Backward-Compatible Hydration Helper ───────────────────────────────────
+
+function ensureDefaults(p: Partial<Problem>): Problem {
+  const status = p.status ?? 'Submitted';
+  let assignedTeam = p.assignedTeam ?? '';
+  let industrySponsor = p.industrySponsor ?? '';
+  let fundingAmount = p.fundingAmount ?? 0;
+
+  if (status === 'Pilot_Deployed') {
+    if (!assignedTeam) assignedTeam = `${p.targetUniversity || 'State Technical Directorate'} Field Pilot Taskforce`;
+    if (!industrySponsor) industrySponsor = 'District Mineral Foundation Trust (DMFT) & CSR Co-Fund';
+    if (!fundingAmount) fundingAmount = 350000;
+  } else if (status === 'Industry_Pledged') {
+    if (!industrySponsor) industrySponsor = 'Tata Steel CSR Foundation';
+    if (!fundingAmount) fundingAmount = 280000;
+  }
+
+  return {
+    id: p.id ?? '',
+    title: p.title ?? '',
+    description: p.description ?? '',
+    district: p.district ?? '',
+    category: p.category ?? 'Rural Infra',
+    urgency: p.urgency ?? 'Medium',
+    mediaUrl: p.mediaUrl ?? '',
+    status,
+    targetUniversity: p.targetUniversity ?? '',
+    assignedTeam,
+    industrySponsor,
+    fundingAmount,
+    submittedAt: p.submittedAt ?? new Date().toISOString(),
+    geoCoords: p.geoCoords,
+    submitterType: p.submitterType ?? 'Individual',
+    comments: p.comments ?? [],
+    milestones: p.milestones ?? [],
+    preferredSponsor: p.preferredSponsor,
+    patentsCount: p.patentsCount ?? 0,
+    startupsCreated: p.startupsCreated ?? 0,
+    publicationsCount: p.publicationsCount ?? 0,
+  };
+}
 
 // ─── Store Actions ──────────────────────────────────────────────────────────
 
@@ -161,9 +286,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved) as Problem[];
+        const parsed = JSON.parse(saved) as Partial<Problem>[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          dispatch({ type: 'HYDRATE', payload: parsed });
+          // Apply defaults for backward compatibility
+          dispatch({ type: 'HYDRATE', payload: parsed.map(ensureDefaults) });
         }
       }
     } catch {
@@ -225,3 +351,4 @@ export function useRole() {
   if (!ctx) throw new Error('useRole must be used within <RoleProvider>');
   return ctx;
 }
+

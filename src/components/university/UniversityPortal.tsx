@@ -2,8 +2,10 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
+import { useNotifications } from '@/lib/notifications';
 import { classifyProblem } from '@/lib/ai-engine';
-import type { Problem } from '@/lib/types';
+import type { Problem, Comment } from '@/lib/types';
+import { CORPORATE_SPONSORS } from '@/lib/types';
 import {
   GraduationCap,
   MapPin,
@@ -20,12 +22,25 @@ import {
   IndianRupee,
   Beaker,
   Tag,
+  MessageCircle,
+  Send,
+  CheckSquare,
+  Image as ImageIcon,
+  Building2,
 } from 'lucide-react';
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+// ─── Jharkhand Nodal Universities ───────────────────────────────────────────
 
-const UNIVERSITY_ID = 'IIT (ISM) Dhanbad';
-const DEPARTMENT = 'Dept. of Environmental Science & Engineering';
+export const JHARKHAND_HEIS = [
+  { id: 'all', name: 'All Higher Education Institutions (Statewide)', short: 'All HEIs', dept: 'Statewide Academic R&D Consortium' },
+  { id: 'IIT (ISM) Dhanbad', name: 'IIT (ISM) Dhanbad', short: 'IIT ISM', dept: 'Dept. of Environmental Science & Mining Tech' },
+  { id: 'NIT Jamshedpur', name: 'NIT Jamshedpur', short: 'NIT Jamshedpur', dept: 'Dept. of Civil & Water Resources Engineering' },
+  { id: 'Birsa Agricultural University, Ranchi', name: 'Birsa Agricultural University (BAU), Ranchi', short: 'BAU Ranchi', dept: 'Faculty of Agriculture & Agro-Technology' },
+  { id: 'BIT Mesra, Ranchi', name: 'BIT Mesra, Ranchi', short: 'BIT Mesra', dept: 'Dept. of Civil Engineering & Rural Infrastructure' },
+  { id: 'RIMS Ranchi', name: 'RIMS Ranchi', short: 'RIMS Ranchi', dept: 'Dept. of Community Medicine & Public Health' },
+  { id: 'Kolhan University, Chaibasa', name: 'Kolhan University, Chaibasa', short: 'Kolhan Univ', dept: 'Faculty of Tribal Welfare & Social Sciences' },
+  { id: 'Ranchi University', name: 'Ranchi University', short: 'Ranchi Univ', dept: 'Dept. of Public Administration & Urban Studies' },
+] as const;
 
 const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
   Submitted: { cls: 'badge-submitted', label: 'Submitted' },
@@ -45,26 +60,29 @@ const URGENCY_BADGE: Record<string, string> = {
 
 export default function UniversityPortal() {
   const { problems, updateProblem } = useStore();
+  const [selectedUni, setSelectedUni] = useState<string>('all');
 
-  // Filter problems assigned/routed to this university
+  const currentHei = JHARKHAND_HEIS.find((h) => h.id === selectedUni) || JHARKHAND_HEIS[0];
+
+  // Filter problems assigned/routed to this university (or all universities)
   const inbox = useMemo(
     () =>
       problems.filter(
         (p) =>
-          p.targetUniversity === UNIVERSITY_ID &&
+          (selectedUni === 'all' || p.targetUniversity === selectedUni) &&
           (p.status === 'Submitted' || p.status === 'Routed_To_HEI')
       ),
-    [problems]
+    [problems, selectedUni]
   );
 
   const adopted = useMemo(
     () =>
       problems.filter(
         (p) =>
-          p.targetUniversity === UNIVERSITY_ID &&
+          (selectedUni === 'all' || p.targetUniversity === selectedUni) &&
           (p.status === 'In_Proposal' || p.status === 'Industry_Pledged' || p.status === 'Pilot_Deployed')
       ),
-    [problems]
+    [problems, selectedUni]
   );
 
   // Detail drawer
@@ -74,6 +92,8 @@ export default function UniversityPortal() {
   // Success state
   const [successId, setSuccessId] = useState<string | null>(null);
 
+  const { addNotification } = useNotifications();
+
   return (
     <div className="page-container" style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 60px' }}>
       {/* ── Header ───────────────────────────────────────────────── */}
@@ -82,31 +102,55 @@ export default function UniversityPortal() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
             marginBottom: 6,
           }}
         >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-            }}
-          >
-            <GraduationCap size={22} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                flexShrink: 0,
+              }}
+            >
+              <GraduationCap size={22} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2 }}>
+                University Workspace
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                {currentHei.name} — {currentHei.dept}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2 }}>
-              University Workspace
-            </h1>
-            <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-              {UNIVERSITY_ID} — {DEPARTMENT}
-            </p>
+
+          {/* Institution Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--color-surface)', padding: '6px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <GraduationCap size={15} color="#7c3aed" /> Switch HEI:
+            </label>
+            <select
+              className="input-field"
+              value={selectedUni}
+              onChange={(e) => setSelectedUni(e.target.value)}
+              style={{ padding: '6px 12px', fontSize: '0.82rem', fontWeight: 600, border: 'none', background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-sm)' }}
+            >
+              {JHARKHAND_HEIS.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -202,13 +246,34 @@ export default function UniversityPortal() {
           problem={adoptTarget}
           onClose={() => setAdoptTarget(null)}
           onSubmit={(data) => {
+            const adoptingUni = selectedUni === 'all' ? (adoptTarget.targetUniversity || 'NIT Jamshedpur') : selectedUni;
             updateProblem(adoptTarget.id, {
               status: 'In_Proposal',
+              targetUniversity: adoptingUni,
               assignedTeam: data.teamSummary,
               fundingAmount: data.funding,
+              milestones: data.milestones,
+              preferredSponsor: data.preferredSponsor,
             });
             setAdoptTarget(null);
             setSuccessId(adoptTarget.id);
+
+            // Fire notifications
+            addNotification(
+              `Problem "${adoptTarget.title}" adopted by ${adoptingUni}. Team: ${data.teamSummary}. Now In Proposal.`,
+              'citizen',
+              adoptTarget.id
+            );
+            addNotification(
+              `${adoptingUni} has adopted challenge ${adoptTarget.id}. Seeking industry partnerships.`,
+              'industry',
+              adoptTarget.id
+            );
+            addNotification(
+              `HEI adoption: ${adoptTarget.id} picked up by ${adoptingUni}. Status → In Proposal.`,
+              'government',
+              adoptTarget.id
+            );
           }}
         />
       )}
@@ -431,9 +496,18 @@ function ProblemRow({
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Clock size={12} /> {date}
           </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#7c3aed', fontWeight: 600 }}>
+            <GraduationCap size={12} /> {problem.targetUniversity || 'Unassigned HEI'}
+          </span>
           {adopted && problem.assignedTeam && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-primary)' }}>
               <Users size={12} /> {problem.assignedTeam}
+            </span>
+          )}
+          {adopted && problem.milestones && problem.milestones.length > 0 && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#16a34a', fontWeight: 600 }}>
+              <CheckSquare size={12} />
+              {problem.milestones.filter((m) => m.completed).length}/{problem.milestones.length} Milestones
             </span>
           )}
         </div>
@@ -470,6 +544,8 @@ function DetailDrawer({
   onClose: () => void;
   onAdopt: () => void;
 }) {
+  const { updateProblem } = useStore();
+  const { addNotification } = useNotifications();
   const triage = classifyProblem(problem.title, problem.description);
   const sb = STATUS_BADGE[problem.status] || STATUS_BADGE.Submitted;
   const canAdopt = problem.status === 'Submitted' || problem.status === 'Routed_To_HEI';
@@ -568,20 +644,58 @@ function DetailDrawer({
             </p>
           </div>
 
-          {/* Media placeholder */}
-          <div
-            style={{
-              marginTop: 16,
-              padding: '20px',
-              background: 'var(--color-surface-alt)',
-              borderRadius: 'var(--radius-md)',
-              textAlign: 'center',
-              color: 'var(--color-text-muted)',
-              fontSize: '0.82rem',
-            }}
-          >
-            📷 Citizen-uploaded media would appear here
-          </div>
+          {/* Citizen Media Evidence */}
+          {problem.mediaUrl ? (
+            <div
+              style={{
+                marginTop: 16,
+                padding: '12px 14px',
+                background: 'var(--color-surface-alt)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: 'var(--color-text-muted)',
+                  letterSpacing: '0.04em',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <ImageIcon size={13} /> Citizen Evidence Photo
+              </div>
+              <img
+                src={problem.mediaUrl}
+                alt="Citizen evidence"
+                style={{
+                  maxHeight: 220,
+                  maxWidth: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--color-border)',
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: 16,
+                padding: '14px',
+                background: 'var(--color-surface-alt)',
+                borderRadius: 'var(--radius-md)',
+                textAlign: 'center',
+                color: 'var(--color-text-muted)',
+                fontSize: '0.8rem',
+              }}
+            >
+              📷 No citizen photo attached
+            </div>
+          )}
 
           {/* AI Triage Notes */}
           <div
@@ -619,6 +733,101 @@ function DetailDrawer({
             </div>
           </div>
 
+          {/* Project Milestones Roadmap */}
+          {problem.milestones && problem.milestones.length > 0 && (
+            <div
+              style={{
+                marginTop: 18,
+                padding: '16px',
+                background: 'rgba(124, 58, 237, 0.04)',
+                border: '1px solid rgba(124, 58, 237, 0.15)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: '#7c3aed',
+                  letterSpacing: '0.04em',
+                  marginBottom: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CheckSquare size={13} /> Project Milestones & Progress
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600 }}>
+                  {problem.milestones.filter((m) => m.completed).length} of {problem.milestones.length} Completed
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {problem.milestones.map((m, idx) => (
+                  <label
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: m.completed ? 'rgba(34, 197, 94, 0.08)' : 'var(--color-surface)',
+                      border: `1px solid ${m.completed ? 'rgba(34, 197, 94, 0.3)' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={m.completed}
+                        onChange={() => {
+                          const updated = problem.milestones!.map((item, i) =>
+                            i === idx ? { ...item, completed: !item.completed } : item
+                          );
+                          updateProblem(problem.id, { milestones: updated });
+                          if (!m.completed) {
+                            addNotification(
+                              `Milestone "${m.label}" completed by ${problem.targetUniversity || 'HEI Team'} for ${problem.id}!`,
+                              'citizen',
+                              problem.id
+                            );
+                            addNotification(
+                              `Milestone reached on ${problem.id}: "${m.label}" marked complete.`,
+                              'government',
+                              problem.id
+                            );
+                            addNotification(
+                              `Research milestone reached: "${m.label}" completed for ${problem.id}.`,
+                              'industry',
+                              problem.id
+                            );
+                          }
+                        }}
+                        style={{ cursor: 'pointer', accentColor: '#7c3aed', width: 16, height: 16 }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '0.82rem',
+                          fontWeight: m.completed ? 600 : 500,
+                          color: m.completed ? '#16a34a' : 'var(--color-text)',
+                          textDecoration: m.completed ? 'line-through' : 'none',
+                        }}
+                      >
+                        {m.label}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                      Target: {m.targetDate}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Adopt button */}
           {canAdopt && (
             <button
@@ -629,7 +838,113 @@ function DetailDrawer({
               <Beaker size={16} /> Adopt Challenge & Form Team
             </button>
           )}
+
+          {/* Comment Thread */}
+          <CommentThread problem={problem} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Comment Thread Component ───────────────────────────────────────────────
+
+function CommentThread({ problem }: { problem: Problem }) {
+  const { updateProblem } = useStore();
+  const [newComment, setNewComment] = useState('');
+
+  const comments = problem.comments || [];
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+    const comment: Comment = {
+      id: `cmt-${Date.now()}`,
+      author: `${problem.targetUniversity || 'University'} Research Team`,
+      role: 'university',
+      text: newComment.trim(),
+      timestamp: new Date().toISOString(),
+    };
+    updateProblem(problem.id, {
+      comments: [...comments, comment],
+    });
+    setNewComment('');
+  };
+
+  const ROLE_COLORS: Record<string, string> = {
+    citizen: '#3b82f6',
+    university: '#7c3aed',
+    industry: '#0ea5e9',
+    government: '#059669',
+    admin: '#059669',
+  };
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div
+        style={{
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: 'var(--color-text-muted)',
+          letterSpacing: '0.04em',
+          marginBottom: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        <MessageCircle size={13} /> Stakeholder Discussion ({comments.length})
+      </div>
+
+      {comments.length === 0 && (
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+          No comments yet. Start the discussion.
+        </p>
+      )}
+
+      {comments.map((c) => (
+        <div
+          key={c.id}
+          style={{
+            padding: '10px 12px',
+            borderLeft: `3px solid ${ROLE_COLORS[c.role] || '#888'}`,
+            background: 'var(--color-surface-alt)',
+            borderRadius: '0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0',
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: ROLE_COLORS[c.role] }}>
+              {c.author}
+            </span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>
+              {new Date(c.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <p style={{ fontSize: '0.82rem', lineHeight: 1.5, color: 'var(--color-text)', margin: 0 }}>
+            {c.text}
+          </p>
+        </div>
+      ))}
+
+      {/* Add comment */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <input
+          className="input-field"
+          placeholder="Add a comment..."
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+          style={{ flex: 1, fontSize: '0.82rem' }}
+        />
+        <button
+          className="btn btn-primary"
+          onClick={handleAddComment}
+          style={{ padding: '8px 14px', flexShrink: 0 }}
+          disabled={!newComment.trim()}
+        >
+          <Send size={14} />
+        </button>
       </div>
     </div>
   );
@@ -640,6 +955,8 @@ function DetailDrawer({
 interface AdoptFormData {
   teamSummary: string;
   funding: number;
+  milestones: { label: string; targetDate: string; completed: boolean }[];
+  preferredSponsor?: string;
 }
 
 function AdoptModal({
@@ -651,29 +968,101 @@ function AdoptModal({
   onClose: () => void;
   onSubmit: (data: AdoptFormData) => void;
 }) {
-  const [studentLead1, setStudentLead1] = useState('Ananya Verma');
-  const [studentLead1Branch, setStudentLead1Branch] = useState('Environmental Engineering');
-  const [studentLead2, setStudentLead2] = useState('Rahul Mahato');
-  const [studentLead2Branch, setStudentLead2Branch] = useState('Mining Engineering');
+  const [studentLead1, setStudentLead1] = useState('');
+  const [studentLead1Branch, setStudentLead1Branch] = useState('');
+  const [studentLead2, setStudentLead2] = useState('');
+  const [studentLead2Branch, setStudentLead2Branch] = useState('');
   const [studentLead3, setStudentLead3] = useState('');
   const [studentLead3Branch, setStudentLead3Branch] = useState('');
-  const [facultyMentor, setFacultyMentor] = useState('Dr. K. N. Singh');
+  const [facultyMentor, setFacultyMentor] = useState('');
 
   const [proposalTitle, setProposalTitle] = useState('');
   const [abstract, setAbstract] = useState('');
-  const [milestone1, setMilestone1] = useState('Literature review & field survey');
-  const [milestone2, setMilestone2] = useState('Prototype development & lab testing');
-  const [milestone3, setMilestone3] = useState('Community pilot deployment & evaluation');
-  const [funding, setFunding] = useState('280000');
+  const [milestone1, setMilestone1] = useState('');
+  const [milestone2, setMilestone2] = useState('');
+  const [milestone3, setMilestone3] = useState('');
+  const [funding, setFunding] = useState('350000');
+  const [preferredSponsor, setPreferredSponsor] = useState(
+    problem.preferredSponsor || 'Open to All Corporate Sponsors (Consortium)'
+  );
+
+  const handleAutofillSuggested = useCallback(() => {
+    if (problem.category === 'Water') {
+      setStudentLead1('Pooja Kumari');
+      setStudentLead1Branch('Civil & Water Resources Engineering');
+      setStudentLead2('Aman Gupta');
+      setStudentLead2Branch('Environmental Engineering');
+      setFacultyMentor('Dr. S. K. Mukherjee (Dept. of Civil Engineering)');
+      setProposalTitle(`CleanWater Pilot: Modular Bio-Sand Filtration for ${problem.district}`);
+      setAbstract('Design and field-testing of low-cost gravity filtration units with activated alumina to neutralize toxic contaminants in community drinking water sources.');
+      setMilestone1('Groundwater sampling & contaminant profiling in affected wards');
+      setMilestone2('Fabrication and lab certification of modular filtration prototype');
+      setMilestone3('Field deployment of community filtration unit and local operator training');
+      setFunding('380000');
+      setPreferredSponsor('Tata Steel CSR Foundation');
+    } else if (problem.category === 'Mining/Env') {
+      setStudentLead1('Rohit Pandey');
+      setStudentLead1Branch('Mining Engineering');
+      setStudentLead2('Sneha Roy');
+      setStudentLead2Branch('Environmental Science & Engineering');
+      setFacultyMentor('Dr. A. K. Sharma (Dept. of Mining Tech)');
+      setProposalTitle(`IoT-Based Real-Time Air Quality & Dust Suppression Grid`);
+      setAbstract('Low-cost particulate optical sensor network with automated mist cannon triggers deployed across mine perimeter colonies.');
+      setMilestone1('Baseline emission audit and wireless sensor grid layout');
+      setMilestone2('IoT sensor network calibration & telemetric cloud gateway');
+      setMilestone3('On-site deployment of dust suppression actuators and public dashboard');
+      setFunding('450000');
+      setPreferredSponsor('Central Coalfields Ltd (CCL) CSR');
+    } else if (problem.category === 'Agriculture') {
+      setStudentLead1('Karan Mahato');
+      setStudentLead1Branch('Agronomy & Soil Sciences');
+      setStudentLead2('Anita Soren');
+      setStudentLead2Branch('Agricultural Engineering');
+      setFacultyMentor('Dr. B. P. Singh (Dept. of Crop Sciences)');
+      setProposalTitle(`Drought-Resilient Millet Cultivars & Gravity Micro-Drip System`);
+      setAbstract('Participatory distribution of drought-tolerant finger millet seeds coupled with low-pressure gravity drip kits for smallholders.');
+      setMilestone1('Soil moisture profiling and farmer seed trials');
+      setMilestone2('Fabrication and demonstration of micro-drip kits');
+      setMilestone3('Harvest yield evaluation and community farmer training');
+      setFunding('290000');
+      setPreferredSponsor('Usha Martin Foundation');
+    } else {
+      setStudentLead1('Vikramaditya Sen');
+      setStudentLead1Branch('Applied Engineering & Tech');
+      setStudentLead2('Ritu Sharma');
+      setStudentLead2Branch('Computer Science & Systems');
+      setFacultyMentor('Prof. R. N. Verma (Nodal HEI Mentor)');
+      setProposalTitle(`Applied Research Solution & Community Pilot for ${problem.title}`);
+      setAbstract(`Interdisciplinary applied engineering blueprint to engineer and deploy a practical, low-cost community solution for ${problem.district}.`);
+      setMilestone1('Field stakeholder assessment & technical specification');
+      setMilestone2('Modular prototype fabrication & bench testing');
+      setMilestone3('Field pilot deployment & community impact report');
+      setFunding('320000');
+      setPreferredSponsor('Open to All Corporate Sponsors (Consortium)');
+    }
+  }, [problem]);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       const members = [studentLead1, studentLead2, studentLead3].filter(Boolean).join(', ');
       const teamSummary = `${members} | Mentor: ${facultyMentor}`;
-      onSubmit({ teamSummary, funding: Number(funding) || 280000 });
+      const now = new Date();
+      const userMilestones = [
+        milestone1.trim() ? { label: milestone1.trim(), targetDate: new Date(now.getTime() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10), completed: false } : null,
+        milestone2.trim() ? { label: milestone2.trim(), targetDate: new Date(now.getTime() + 120 * 24 * 3600 * 1000).toISOString().slice(0, 10), completed: false } : null,
+        milestone3.trim() ? { label: milestone3.trim(), targetDate: new Date(now.getTime() + 180 * 24 * 3600 * 1000).toISOString().slice(0, 10), completed: false } : null,
+      ].filter(Boolean) as { label: string; targetDate: string; completed: boolean }[];
+
+      const milestones = userMilestones.length > 0 ? userMilestones : [
+        { label: 'Technical feasibility survey & baseline audit', targetDate: new Date(now.getTime() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10), completed: false },
+        { label: 'Prototype development & lab evaluation', targetDate: new Date(now.getTime() + 120 * 24 * 3600 * 1000).toISOString().slice(0, 10), completed: false },
+        { label: 'Community pilot deployment & handover', targetDate: new Date(now.getTime() + 180 * 24 * 3600 * 1000).toISOString().slice(0, 10), completed: false },
+      ];
+
+      onSubmit({ teamSummary, funding: Number(funding) || 350000, milestones, preferredSponsor });
     },
-    [studentLead1, studentLead2, studentLead3, facultyMentor, funding, onSubmit]
+    [studentLead1, studentLead2, studentLead3, facultyMentor, funding, milestone1, milestone2, milestone3, preferredSponsor, onSubmit]
   );
 
   return (
@@ -734,40 +1123,120 @@ function AdoptModal({
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '20px 24px' }}>
+          {/* Quick autofill helper */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 20,
+              padding: '10px 14px',
+              background: 'rgba(124, 58, 237, 0.05)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(124, 58, 237, 0.15)',
+              flexWrap: 'wrap',
+              gap: 10,
+            }}
+          >
+            <div style={{ fontSize: '0.78rem', color: 'var(--color-text)' }}>
+              <strong>Customizable Proposal:</strong> Form your own student team & milestones, or auto-fill category suggestions.
+            </div>
+            <button
+              type="button"
+              onClick={handleAutofillSuggested}
+              style={{
+                background: '#7c3aed',
+                color: '#fff',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm, 6px)',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(124, 58, 237, 0.3)',
+              }}
+              title="Auto-fill with relevant department and category data"
+            >
+              <Sparkles size={13} /> ⚡ Auto-fill Suggested
+            </button>
+          </div>
+
           {/* ── Team Section ──────────────────────────────────────── */}
           <div style={{ marginBottom: 24 }}>
             <FormSectionTitle icon={<Users size={15} />} title="Research Team" />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label className="form-label">Student Lead 1</label>
-                <input className="input-field" value={studentLead1} onChange={(e) => setStudentLead1(e.target.value)} required />
+                <label className="form-label">Student Lead 1 *</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g., Ananya Verma"
+                  value={studentLead1}
+                  onChange={(e) => setStudentLead1(e.target.value)}
+                  required
+                />
               </div>
               <div>
-                <label className="form-label">Branch</label>
-                <input className="input-field" value={studentLead1Branch} onChange={(e) => setStudentLead1Branch(e.target.value)} />
+                <label className="form-label">Branch / Specialization *</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g., Civil / Environmental Eng."
+                  value={studentLead1Branch}
+                  onChange={(e) => setStudentLead1Branch(e.target.value)}
+                  required
+                />
               </div>
               <div>
-                <label className="form-label">Student Lead 2</label>
-                <input className="input-field" value={studentLead2} onChange={(e) => setStudentLead2(e.target.value)} />
+                <label className="form-label">Student Lead 2 (Optional)</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g., Rahul Mahato"
+                  value={studentLead2}
+                  onChange={(e) => setStudentLead2(e.target.value)}
+                />
               </div>
               <div>
-                <label className="form-label">Branch</label>
-                <input className="input-field" value={studentLead2Branch} onChange={(e) => setStudentLead2Branch(e.target.value)} />
+                <label className="form-label">Branch (Optional)</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g., Chemical / Mechanical Eng."
+                  value={studentLead2Branch}
+                  onChange={(e) => setStudentLead2Branch(e.target.value)}
+                />
               </div>
               <div>
                 <label className="form-label">Student Lead 3 (Optional)</label>
-                <input className="input-field" placeholder="Name" value={studentLead3} onChange={(e) => setStudentLead3(e.target.value)} />
+                <input
+                  className="input-field"
+                  placeholder="e.g., Priya Kumari"
+                  value={studentLead3}
+                  onChange={(e) => setStudentLead3(e.target.value)}
+                />
               </div>
               <div>
-                <label className="form-label">Branch</label>
-                <input className="input-field" placeholder="Branch" value={studentLead3Branch} onChange={(e) => setStudentLead3Branch(e.target.value)} />
+                <label className="form-label">Branch (Optional)</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g., Computer Science & Eng."
+                  value={studentLead3Branch}
+                  onChange={(e) => setStudentLead3Branch(e.target.value)}
+                />
               </div>
             </div>
 
             <div style={{ marginTop: 12 }}>
-              <label className="form-label">Faculty Mentor</label>
-              <input className="input-field" value={facultyMentor} onChange={(e) => setFacultyMentor(e.target.value)} required />
+              <label className="form-label">Faculty Mentor / Principal Investigator *</label>
+              <input
+                className="input-field"
+                placeholder="e.g., Dr. S. K. Mukherjee (Associate Professor)"
+                value={facultyMentor}
+                onChange={(e) => setFacultyMentor(e.target.value)}
+                required
+              />
             </div>
           </div>
 
@@ -776,10 +1245,10 @@ function AdoptModal({
             <FormSectionTitle icon={<BookOpen size={15} />} title="Solution Proposal" />
 
             <div style={{ marginBottom: 12 }}>
-              <label className="form-label">Proposal Title</label>
+              <label className="form-label">Proposal Title *</label>
               <input
                 className="input-field"
-                placeholder="e.g., IoT-Based Real-Time Air Quality Monitoring Network for Jharia Coalfields"
+                placeholder="e.g., Rapid Field Filtration & Heavy Metal Removal Unit"
                 value={proposalTitle}
                 onChange={(e) => setProposalTitle(e.target.value)}
                 required
@@ -787,10 +1256,10 @@ function AdoptModal({
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <label className="form-label">Abstract</label>
+              <label className="form-label">Abstract *</label>
               <textarea
                 className="input-field"
-                placeholder="Describe your proposed solution approach, methodology, and expected impact…"
+                placeholder="Describe your proposed solution approach, methodology, and expected community impact…"
                 value={abstract}
                 onChange={(e) => setAbstract(e.target.value)}
                 rows={3}
@@ -828,9 +1297,9 @@ function AdoptModal({
             <FormSectionTitle icon={<Target size={15} />} title="Execution Milestones" />
 
             {[
-              { label: 'Milestone 1 (Month 1–2)', value: milestone1, set: setMilestone1 },
-              { label: 'Milestone 2 (Month 3–4)', value: milestone2, set: setMilestone2 },
-              { label: 'Milestone 3 (Month 5–6)', value: milestone3, set: setMilestone3 },
+              { label: 'Milestone 1 (Month 1–2)', value: milestone1, set: setMilestone1, ph: 'e.g., Baseline field assessment & contaminant sampling' },
+              { label: 'Milestone 2 (Month 3–4)', value: milestone2, set: setMilestone2, ph: 'e.g., Prototype fabrication & lab validation' },
+              { label: 'Milestone 3 (Month 5–6)', value: milestone3, set: setMilestone3, ph: 'e.g., Community pilot deployment & training' },
             ].map((m, i) => (
               <div key={i} style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div
@@ -852,10 +1321,39 @@ function AdoptModal({
                 </div>
                 <div style={{ flex: 1 }}>
                   <label className="form-label" style={{ marginBottom: 2 }}>{m.label}</label>
-                  <input className="input-field" value={m.value} onChange={(e) => m.set(e.target.value)} required />
+                  <input
+                    className="input-field"
+                    placeholder={m.ph}
+                    value={m.value}
+                    onChange={(e) => m.set(e.target.value)}
+                  />
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* ── Target / Preferred CSR Sponsor ───────────────────── */}
+          <div style={{ marginBottom: 24 }}>
+            <FormSectionTitle icon={<Building2 size={15} />} title="Target / Preferred CSR Sponsor" />
+
+            <div style={{ marginBottom: 8 }}>
+              <label className="form-label">Preferred Corporate Partner (Open to all by default)</label>
+              <select
+                className="input-field"
+                value={preferredSponsor}
+                onChange={(e) => setPreferredSponsor(e.target.value)}
+                style={{ fontWeight: 600 }}
+              >
+                {CORPORATE_SPONSORS.map((sp) => (
+                  <option key={sp} value={sp}>
+                    {sp}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+              💡 <strong>Open Consortium Model:</strong> All proposals are published to the statewide Corporate CSR Innovation Network. Even if a preferred sponsor is targeted, any registered industry partner (Tata Steel, CCL, Adani, Usha Martin, Vedanta, etc.) can review and sanction the grant.
+            </div>
           </div>
 
           {/* ── Funding ───────────────────────────────────────────── */}

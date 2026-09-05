@@ -2,7 +2,8 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
-import type { Problem } from '@/lib/types';
+import { useNotifications } from '@/lib/notifications';
+import type { Problem, Comment } from '@/lib/types';
 import {
   Building2,
   MapPin,
@@ -22,12 +23,23 @@ import {
   Sparkles,
   CircleDollarSign,
   BadgeCheck,
+  MessageCircle,
+  Send,
+  CheckSquare,
+  Image as ImageIcon,
 } from 'lucide-react';
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+// ─── CSR Corporate Foundations ──────────────────────────────────────────────
 
-const SPONSOR_ID = 'Tata Steel CSR Foundation';
-const DIVISION = 'Sustainable Communities Division';
+export const CSR_SPONSORS = [
+  { id: 'all', name: 'All Corporate CSR Foundations (Consortium)', short: 'All Sponsors', division: 'Statewide CSR Innovation Network' },
+  { id: 'Tata Steel CSR Foundation', name: 'Tata Steel CSR Foundation', short: 'Tata Steel', division: 'Sustainable Communities Division' },
+  { id: 'Central Coalfields Ltd (CCL) CSR', name: 'Central Coalfields Ltd (CCL) CSR', short: 'CCL CSR', division: 'Mining & Community Welfare Cell' },
+  { id: 'Adani Foundation Jharkhand', name: 'Adani Foundation Jharkhand', short: 'Adani Foundation', division: 'Rural Infrastructure & Health Wing' },
+  { id: 'Usha Martin Foundation', name: 'Usha Martin Foundation', short: 'Usha Martin', division: 'Livelihoods & Skill Development' },
+  { id: 'Vedanta / ESL Steel CSR', name: 'Vedanta / ESL Steel CSR', short: 'Vedanta CSR', division: 'Community Development Division' },
+  { id: 'Jindal Steel & Power (JSP) Foundation', name: 'Jindal Steel & Power (JSP) Foundation', short: 'Jindal Foundation', division: 'Social Infrastructure & Livelihoods' },
+] as const;
 
 const DOMAIN_FILTERS = [
   { key: 'all', label: 'All Domains' },
@@ -49,34 +61,48 @@ const URGENCY_BADGE: Record<string, string> = {
 
 export default function IndustryPortal() {
   const { problems, updateProblem } = useStore();
+  const { addNotification } = useNotifications();
+  const [selectedSponsor, setSelectedSponsor] = useState<string>('all');
+  const [pipelineTab, setPipelineTab] = useState<'proposals' | 'grassroots'>('proposals');
   const [activeFilter, setActiveFilter] = useState('all');
   const [pledgeTarget, setPledgeTarget] = useState<Problem | null>(null);
+  const [selectedPledged, setSelectedPledged] = useState<Problem | null>(null);
   const [successProblem, setSuccessProblem] = useState<Problem | null>(null);
   const [successAmount, setSuccessAmount] = useState(0);
 
-  // Proposals seeking sponsorship
+  const currentSponsor = CSR_SPONSORS.find((s) => s.id === selectedSponsor) || CSR_SPONSORS[0];
+
+  // Proposals seeking sponsorship (In_Proposal)
   const proposals = useMemo(
     () => problems.filter((p) => p.status === 'In_Proposal'),
     [problems]
   );
 
+  // Grassroots community challenges awaiting HEI adoption or open for early CSR interest
+  const grassroots = useMemo(
+    () => problems.filter((p) => p.status === 'Submitted' || p.status === 'Routed_To_HEI'),
+    [problems]
+  );
+
+  const activePool = pipelineTab === 'proposals' ? proposals : grassroots;
+
   const filtered = useMemo(
     () =>
       activeFilter === 'all'
-        ? proposals
-        : proposals.filter((p) => p.category === activeFilter),
-    [proposals, activeFilter]
+        ? activePool
+        : activePool.filter((p) => p.category === activeFilter),
+    [activePool, activeFilter]
   );
 
-  // Already pledged by this sponsor
+  // Already pledged / funded
   const pledged = useMemo(
     () =>
       problems.filter(
         (p) =>
-          p.industrySponsor === SPONSOR_ID &&
+          (selectedSponsor === 'all' || p.industrySponsor === selectedSponsor) &&
           (p.status === 'Industry_Pledged' || p.status === 'Pilot_Deployed')
       ),
-    [problems]
+    [problems, selectedSponsor]
   );
 
   const totalPledged = useMemo(
@@ -88,28 +114,70 @@ export default function IndustryPortal() {
     <div className="page-container" style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 60px' }}>
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="animate-fade-in-up" style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            marginBottom: 6,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #0369a1, #38bdf8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                flexShrink: 0,
+              }}
+            >
+              <Building2 size={22} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2 }}>
+                Industry & CSR Hub
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                {currentSponsor.name} — {currentSponsor.division}
+              </p>
+            </div>
+          </div>
+
+          {/* Sponsor Selector */}
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #0369a1, #38bdf8)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
+              gap: 10,
+              background: 'var(--color-surface)',
+              padding: '6px 14px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              boxShadow: 'var(--shadow-sm)',
             }}
           >
-            <Building2 size={22} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2 }}>
-              Industry & CSR Hub
-            </h1>
-            <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-              {SPONSOR_ID} — {DIVISION}
-            </p>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Building2 size={15} color="#0369a1" /> Sponsor Entity:
+            </label>
+            <select
+              className="input-field"
+              value={selectedSponsor}
+              onChange={(e) => setSelectedSponsor(e.target.value)}
+              style={{ padding: '6px 12px', fontSize: '0.82rem', fontWeight: 600, border: 'none', background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-sm)' }}
+            >
+              {CSR_SPONSORS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -191,15 +259,72 @@ export default function IndustryPortal() {
         ))}
       </div>
 
-      {/* ── Proposal Cards ───────────────────────────────────────── */}
+      {/* ── Proposal Cards & Pipeline Toggle ─────────────────────── */}
       <div className="animate-fade-in-up" style={{ animationDelay: '0.12s' }}>
-        <div style={{ marginBottom: 14 }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-            Proposals Seeking Sponsorship
-          </h2>
-          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-            University-backed research proposals ready for corporate CSR funding
-          </p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 14,
+            marginBottom: 16,
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 4px 0' }}>
+              {pipelineTab === 'proposals' ? 'Academic R&D Proposals' : 'Grassroots Challenges Pipeline'}
+            </h2>
+            <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              {pipelineTab === 'proposals'
+                ? 'Faculty & student-adopted technical blueprints ready for corporate Section 135 CSR grants'
+                : 'Raw community grievances awaiting HEI allocation — preview early or pledge corporate adoption'}
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              background: 'var(--color-surface-alt)',
+              padding: 4,
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <button
+              onClick={() => setPipelineTab('proposals')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                borderRadius: 'var(--radius-full)',
+                border: 'none',
+                cursor: 'pointer',
+                background: pipelineTab === 'proposals' ? 'var(--color-primary)' : 'transparent',
+                color: pipelineTab === 'proposals' ? '#fff' : 'var(--color-text)',
+                transition: 'all 0.2s',
+              }}
+            >
+              Academic Proposals ({proposals.length})
+            </button>
+            <button
+              onClick={() => setPipelineTab('grassroots')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                borderRadius: 'var(--radius-full)',
+                border: 'none',
+                cursor: 'pointer',
+                background: pipelineTab === 'grassroots' ? 'var(--color-primary)' : 'transparent',
+                color: pipelineTab === 'grassroots' ? '#fff' : 'var(--color-text)',
+                transition: 'all 0.2s',
+              }}
+            >
+              Incoming Challenges ({grassroots.length})
+            </button>
+          </div>
         </div>
 
         {filtered.length === 0 ? (
@@ -245,7 +370,11 @@ export default function IndustryPortal() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
             {pledged.map((p) => (
-              <PledgedCard key={p.id} problem={p} />
+              <PledgedCard
+                key={p.id}
+                problem={p}
+                onClick={() => setSelectedPledged(p)}
+              />
             ))}
           </div>
         </div>
@@ -255,17 +384,43 @@ export default function IndustryPortal() {
       {pledgeTarget && (
         <PledgeModal
           problem={pledgeTarget}
+          defaultSponsor={selectedSponsor}
           onClose={() => setPledgeTarget(null)}
-          onAuthorize={(amount) => {
+          onAuthorize={(amount, sponsorEntity) => {
             updateProblem(pledgeTarget.id, {
               status: 'Industry_Pledged',
-              industrySponsor: SPONSOR_ID,
+              industrySponsor: sponsorEntity,
               fundingAmount: amount,
             });
-            setSuccessProblem(pledgeTarget);
+            setSuccessProblem({ ...pledgeTarget, industrySponsor: sponsorEntity });
             setSuccessAmount(amount);
             setPledgeTarget(null);
+
+            // Fire notifications
+            addNotification(
+              `${sponsorEntity} pledged ₹${(amount / 100000).toFixed(1)} Lakhs for problem ${pledgeTarget.id}!`,
+              'citizen',
+              pledgeTarget.id
+            );
+            addNotification(
+              `${sponsorEntity} approved ₹${(amount / 100000).toFixed(1)} Lakhs CSR Grant for ${pledgeTarget.id}!`,
+              'university',
+              pledgeTarget.id
+            );
+            addNotification(
+              `Industry CSR Pledge: ${sponsorEntity} committed ₹${amount.toLocaleString('en-IN')} for ${pledgeTarget.id}.`,
+              'government',
+              pledgeTarget.id
+            );
           }}
+        />
+      )}
+
+      {/* ── Pledged Detail Modal ──────────────────────────────────── */}
+      {selectedPledged && (
+        <PledgedDetailModal
+          problem={selectedPledged}
+          onClose={() => setSelectedPledged(null)}
         />
       )}
 
@@ -416,6 +571,47 @@ function ProposalCard({
           </span>
         </div>
 
+        {/* Preferred / Target CSR Sponsor */}
+        <div style={{ marginBottom: 12 }}>
+          {problem.preferredSponsor && problem.preferredSponsor !== 'Open to All Corporate Sponsors (Consortium)' ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(3, 105, 161, 0.08)',
+                border: '1px solid rgba(3, 105, 161, 0.25)',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                color: '#0369a1',
+              }}
+            >
+              <Target size={12} />
+              <span>Target Sponsor: {problem.preferredSponsor}</span>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(5, 150, 105, 0.08)',
+                border: '1px solid rgba(5, 150, 105, 0.2)',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                color: '#059669',
+              }}
+            >
+              <Building2 size={12} />
+              <span>Open to All CSR Sponsors (Consortium)</span>
+            </div>
+          )}
+        </div>
+
         {/* Abstract preview */}
         <div
           style={{
@@ -533,9 +729,23 @@ function ProposalCard({
 
 // ─── Pledged Card ───────────────────────────────────────────────────────────
 
-function PledgedCard({ problem }: { problem: Problem }) {
+function PledgedCard({
+  problem,
+  onClick,
+}: {
+  problem: Problem;
+  onClick?: () => void;
+}) {
   return (
-    <div className="glass-card" style={{ padding: '18px 22px' }}>
+    <div
+      className="glass-card"
+      onClick={onClick}
+      style={{
+        padding: '18px 22px',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'transform var(--transition-base), box-shadow var(--transition-base)',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span className="badge badge-pledged">✓ Funded</span>
         <span
@@ -551,6 +761,10 @@ function PledgedCard({ problem }: { problem: Problem }) {
       <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 6, lineHeight: 1.3 }}>
         {problem.title}
       </h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#0369a1', fontWeight: 700, marginBottom: 8 }}>
+        <Building2 size={13} />
+        <span>{problem.industrySponsor || 'Corporate CSR Foundation'}</span>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.78rem', color: 'var(--color-text-muted)', marginBottom: 10 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <MapPin size={12} /> {problem.district}
@@ -559,6 +773,12 @@ function PledgedCard({ problem }: { problem: Problem }) {
           <GraduationCap size={12} /> {problem.targetUniversity}
         </span>
       </div>
+      {problem.milestones && problem.milestones.length > 0 && (
+        <div style={{ fontSize: '0.72rem', color: '#059669', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+          <CheckSquare size={12} />
+          {problem.milestones.filter((m) => m.completed).length} / {problem.milestones.length} Milestones Achieved
+        </div>
+      )}
       <div
         style={{
           display: 'flex',
@@ -576,6 +796,11 @@ function PledgedCard({ problem }: { problem: Problem }) {
           ₹{problem.fundingAmount.toLocaleString('en-IN')}
         </div>
       </div>
+      {onClick && (
+        <div style={{ marginTop: 8, textAlign: 'right', fontSize: '0.72rem', color: 'var(--color-primary-dark)', fontWeight: 600 }}>
+          View Milestones & Discussion →
+        </div>
+      )}
     </div>
   );
 }
@@ -584,15 +809,24 @@ function PledgedCard({ problem }: { problem: Problem }) {
 
 function PledgeModal({
   problem,
+  defaultSponsor,
   onClose,
   onAuthorize,
 }: {
   problem: Problem;
+  defaultSponsor: string;
   onClose: () => void;
-  onAuthorize: (amount: number) => void;
+  onAuthorize: (amount: number, sponsorEntity: string) => void;
 }) {
   const [amount, setAmount] = useState(problem.fundingAmount > 0 ? problem.fundingAmount : 280000);
   const [milestoneLinked, setMilestoneLinked] = useState(true);
+  const [sponsorEntity, setSponsorEntity] = useState<string>(() => {
+    if (defaultSponsor && defaultSponsor !== 'all') return defaultSponsor;
+    if (problem.preferredSponsor && problem.preferredSponsor !== 'Open to All Corporate Sponsors (Consortium)') {
+      return problem.preferredSponsor;
+    }
+    return 'Tata Steel CSR Foundation';
+  });
 
   const handleSlider = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setAmount(Number(e.target.value));
@@ -678,7 +912,7 @@ function PledgeModal({
               padding: '14px 16px',
               background: 'var(--color-surface-alt)',
               borderRadius: 'var(--radius-md)',
-              marginBottom: 22,
+              marginBottom: 20,
             }}
           >
             <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginBottom: 6, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
@@ -695,6 +929,73 @@ function PledgeModal({
             {problem.assignedTeam && (
               <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Users size={12} /> Team: {problem.assignedTeam}
+              </div>
+            )}
+          </div>
+
+          {/* ── Corporate Sponsoring Entity Selector ─────────────────── */}
+          <div style={{ marginBottom: 22 }}>
+            <label
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: 'var(--color-text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                marginBottom: 6,
+              }}
+            >
+              <Building2 size={15} color="#0369a1" /> Sponsoring Corporate Foundation *
+            </label>
+            <select
+              className="input-field"
+              value={sponsorEntity}
+              onChange={(e) => setSponsorEntity(e.target.value)}
+              style={{ width: '100%', padding: '9px 12px', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              {CSR_SPONSORS.filter((s) => s.id !== 'all').map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} — {s.division}
+                </option>
+              ))}
+            </select>
+            {problem.preferredSponsor && problem.preferredSponsor !== 'Open to All Corporate Sponsors (Consortium)' && (
+              <div
+                style={{
+                  fontSize: '0.74rem',
+                  color: 'var(--color-primary-dark)',
+                  marginTop: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(3, 105, 161, 0.06)',
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                <span>🎯 HEI Preferred Target:</span>
+                <strong>{problem.preferredSponsor}</strong>
+                {problem.preferredSponsor === sponsorEntity ? (
+                  <span style={{ color: '#059669', fontWeight: 700 }}>✓ Matched!</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSponsorEntity(problem.preferredSponsor!)}
+                    style={{
+                      border: 'none',
+                      background: 'none',
+                      color: '#0369a1',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: 0,
+                      fontSize: '0.74rem',
+                    }}
+                  >
+                    (Select Preferred)
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -913,6 +1214,9 @@ function PledgeModal({
             )}
           </div>
 
+          {/* Stakeholder Discussion */}
+          <IndustryCommentSection problem={problem} />
+
           {/* ── Authorize Button ───────────────────────────────────── */}
           <button
             className="btn btn-primary"
@@ -922,10 +1226,11 @@ function PledgeModal({
               fontSize: '0.92rem',
               background: 'linear-gradient(135deg, #0369a1, #38bdf8)',
               boxShadow: '0 2px 12px rgba(3, 105, 161, 0.3)',
+              marginTop: 18,
             }}
-            onClick={() => onAuthorize(amount)}
+            onClick={() => onAuthorize(amount, sponsorEntity)}
           >
-            <Landmark size={17} /> Authorize CSR Grant
+            <Landmark size={17} /> Authorize CSR Grant ({sponsorEntity.split(' ')[0]})
           </button>
         </div>
       </div>
@@ -988,7 +1293,7 @@ function SuccessReceipt({
           <ReceiptRow label="Problem" value={problem.title} />
           <ReceiptRow label="District" value={problem.district} />
           <ReceiptRow label="University" value={problem.targetUniversity} />
-          <ReceiptRow label="Sponsor" value={SPONSOR_ID} />
+          <ReceiptRow label="Sponsor" value={problem.industrySponsor || 'Corporate CSR Sponsor'} />
           <ReceiptRow
             label="Grant Amount"
             value={`₹${amount.toLocaleString('en-IN')}`}
@@ -1067,4 +1372,312 @@ function formatINR(n: number): string {
   if (n >= 100000) return `₹${(n / 100000).toFixed(2)} Lakh`;
   if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
   return `₹${n}`;
+}
+
+// ─── Pledged Detail Modal ───────────────────────────────────────────────────
+
+function PledgedDetailModal({
+  problem,
+  onClose,
+}: {
+  problem: Problem;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--color-surface)',
+          borderRadius: 'var(--radius-lg)',
+          maxWidth: 620,
+          width: '92%',
+          maxHeight: '85vh',
+          overflow: 'auto',
+          boxShadow: 'var(--shadow-lg)',
+          animation: 'fadeInUp 0.3s ease-out',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '18px 24px',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            background: 'var(--color-surface)',
+            zIndex: 10,
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <span className="badge badge-pledged">CSR Funded</span>
+              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>
+                {problem.id}
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+              {problem.title}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--color-text-muted)' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: '22px 24px' }}>
+          {/* Grant Summary */}
+          <div
+            style={{
+              padding: '14px 18px',
+              background: 'rgba(5, 150, 105, 0.05)',
+              border: '1.5px solid rgba(5, 150, 105, 0.2)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 20,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#059669', textTransform: 'uppercase' }}>
+                CSR Grant Committed
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#059669' }}>
+                ₹{problem.fundingAmount.toLocaleString('en-IN')}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                {problem.industrySponsor || 'CSR Co-Fund'}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                HEI Implementing Team
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                {problem.targetUniversity}
+              </div>
+              {problem.assignedTeam && (
+                <div style={{ fontSize: '0.75rem', color: '#7c3aed' }}>
+                  {problem.assignedTeam}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Citizen Media Evidence */}
+          {problem.mediaUrl ? (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ImageIcon size={13} /> Project Evidence Media
+              </div>
+              <img
+                src={problem.mediaUrl}
+                alt="Evidence"
+                style={{
+                  maxHeight: 200,
+                  maxWidth: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--color-border)',
+                }}
+              />
+            </div>
+          ) : null}
+
+          {/* Milestones Checklist */}
+          {problem.milestones && problem.milestones.length > 0 && (
+            <div
+              style={{
+                marginBottom: 20,
+                padding: '16px',
+                background: 'var(--color-surface-alt)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CheckSquare size={14} /> Tranche Milestones & Deliverables
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  {problem.milestones.filter((m) => m.completed).length} / {problem.milestones.length} Completed
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {problem.milestones.map((m, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: m.completed ? 'rgba(34, 197, 94, 0.08)' : 'var(--color-surface)',
+                      border: `1px solid ${m.completed ? 'rgba(34, 197, 94, 0.3)' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {m.completed ? <CheckCircle2 size={15} color="#16a34a" /> : <Clock size={15} color="var(--color-text-muted)" />}
+                      <span style={{ fontSize: '0.82rem', fontWeight: m.completed ? 600 : 500, color: m.completed ? '#16a34a' : 'var(--color-text)' }}>
+                        {m.label}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                      {m.targetDate}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stakeholder Discussion */}
+          <IndustryCommentSection problem={problem} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Industry Comment Section ───────────────────────────────────────────────
+
+function IndustryCommentSection({ problem }: { problem: Problem }) {
+  const { updateProblem } = useStore();
+  const { addNotification } = useNotifications();
+  const [commentText, setCommentText] = useState('');
+
+  const comments = problem.comments || [];
+
+  const handlePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    const sponsorAuthor = problem.industrySponsor || 'Corporate CSR Sponsor';
+    const newComment: Comment = {
+      id: `c-ind-${Date.now()}`,
+      author: sponsorAuthor,
+      role: 'industry',
+      text: commentText.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    updateProblem(problem.id, {
+      comments: [...comments, newComment],
+    });
+
+    addNotification(
+      `${sponsorAuthor} posted an update on ${problem.id}: "${commentText.trim().slice(0, 40)}..."`,
+      'university',
+      problem.id
+    );
+    addNotification(
+      `Industry Sponsor communication on ${problem.id}: "${commentText.trim().slice(0, 40)}..."`,
+      'government',
+      problem.id
+    );
+
+    setCommentText('');
+  };
+
+  const ROLE_COLORS: Record<string, string> = {
+    citizen: '#2563eb',
+    university: '#7c3aed',
+    industry: '#0284c7',
+    government: '#059669',
+    admin: '#059669',
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        padding: '14px 16px',
+        background: 'var(--color-surface-alt)',
+        borderRadius: 'var(--radius-md)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: 'var(--color-text-muted)',
+          letterSpacing: '0.04em',
+          marginBottom: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        <MessageCircle size={14} /> Stakeholder Communications ({comments.length})
+      </div>
+
+      {comments.length === 0 && (
+        <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginBottom: 10 }}>
+          No previous notes. Ask the research team a question or specify CSR milestone requirements.
+        </p>
+      )}
+
+      {comments.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12, maxHeight: 160, overflowY: 'auto' }}>
+          {comments.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                padding: '8px 12px',
+                borderLeft: `3px solid ${ROLE_COLORS[c.role] || '#888'}`,
+                background: 'var(--color-surface)',
+                borderRadius: '0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: ROLE_COLORS[c.role] || '#888' }}>
+                  {c.author} ({c.role})
+                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>
+                  {new Date(c.timestamp).toLocaleString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.8rem', lineHeight: 1.4, color: 'var(--color-text)', margin: 0 }}>
+                {c.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Post comment */}
+      <form onSubmit={handlePost} style={{ display: 'flex', gap: 8 }}>
+        <input
+          className="input-field"
+          placeholder="Ask research team or post CSR note..."
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          style={{ flex: 1, fontSize: '0.8rem', padding: '6px 10px' }}
+        />
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ padding: '6px 14px', flexShrink: 0, fontSize: '0.8rem' }}
+          disabled={!commentText.trim()}
+        >
+          <Send size={13} /> Send
+        </button>
+      </form>
+    </div>
+  );
 }

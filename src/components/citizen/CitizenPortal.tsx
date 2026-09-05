@@ -2,14 +2,18 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
-import { classifyProblem } from '@/lib/ai-engine';
+import { classifyProblem, findDuplicates } from '@/lib/ai-engine';
+import { useNotifications } from '@/lib/notifications';
 import {
   JHARKHAND_DISTRICTS,
   CATEGORIES,
+  SUBMITTER_LABELS,
   type AiTriageResult,
   type Category,
   type Problem,
   type ProblemStatus,
+  type SubmitterType,
+  type Comment,
 } from '@/lib/types';
 import {
   Send,
@@ -29,6 +33,11 @@ import {
   GraduationCap,
   Tag,
   AlertTriangle,
+  MessageCircle,
+  CheckSquare,
+  Calendar,
+  Clock,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 // ─── Hindi / English label map ──────────────────────────────────────────────
@@ -191,7 +200,8 @@ const STATUS_STEPS: ProblemStatus[] = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function CitizenPortal() {
-  const { problems, addProblem } = useStore();
+  const { problems, addProblem, updateProblem } = useStore();
+  const { addNotification } = useNotifications();
   const [lang, setLang] = useState<Lang>('en');
   const L = LABELS[lang];
 
@@ -205,13 +215,21 @@ export default function CitizenPortal() {
   const [district, setDistrict] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
+  const [submitterType, setSubmitterType] = useState<SubmitterType>('Individual');
   const [geoDetected, setGeoDetected] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [mediaBase64, setMediaBase64] = useState<string>('');
 
   // AI triage state
   const [triage, setTriage] = useState<AiTriageResult | null>(null);
   const triageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Deduplication state
+  const [dupWarning, setDupWarning] = useState<{ problem: Problem; similarity: number }[]>([]);
+  const [dupDismissed, setDupDismissed] = useState(false);
 
   // Success modal
   const [successId, setSuccessId] = useState<string | null>(null);
@@ -243,20 +261,63 @@ export default function CitizenPortal() {
     };
   }, [title, description]);
 
-  // Mock geolocation
+  // Real geolocation with district fallback
   const handleGeoDetect = useCallback(() => {
-    const coords = district
-      ? DISTRICT_COORDS[district] || { lat: 23.3441, lng: 85.3096 }
-      : { lat: 23.3441, lng: 85.3096 };
-    setGeoCoords(coords);
-    setGeoDetected(true);
+    setGeoLoading(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setGeoCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setGeoDetected(true);
+          setGeoLoading(false);
+        },
+        () => {
+          // Fallback to district coordinates on denial/error
+          const coords = district
+            ? DISTRICT_COORDS[district] || { lat: 23.3441, lng: 85.3096 }
+            : { lat: 23.3441, lng: 85.3096 };
+          setGeoCoords(coords);
+          setGeoDetected(true);
+          setGeoLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      const coords = district
+        ? DISTRICT_COORDS[district] || { lat: 23.3441, lng: 85.3096 }
+        : { lat: 23.3441, lng: 85.3096 };
+      setGeoCoords(coords);
+      setGeoDetected(true);
+      setGeoLoading(false);
+    }
   }, [district]);
 
-  // Mock file upload
+  // File upload with image preview & Base64 storage
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      setFileNames(Array.from(files).map((f) => f.name));
+      const fileArr = Array.from(files);
+      setFileNames(fileArr.map((f) => f.name));
+      // Generate previews for image files
+      const previews: string[] = [];
+      fileArr.forEach((f) => {
+        if (f.type.startsWith('image/')) {
+          previews.push(URL.createObjectURL(f));
+        }
+      });
+      setFilePreviews(previews);
+      const imgFile = fileArr.find((f) => f.type.startsWith('image/'));
+      if (imgFile) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            setMediaBase64(reader.result);
+          }
+        };
+        reader.readAsDataURL(imgFile);
+      } else {
+        setMediaBase64('');
+      }
     }
   }, []);
 
@@ -274,11 +335,30 @@ export default function CitizenPortal() {
     return 'Low' as const;
   }, [triage]);
 
+  // Dedup check as user types title/description
+  useEffect(() => {
+    if (title.length < 10 && description.length < 15) {
+      setDupWarning([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const dups = findDuplicates(title, description, problems);
+      setDupWarning(dups);
+      setDupDismissed(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [title, description, problems]);
+
   // Submit handler
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!title || !district || !description || !category) return;
+
+      // Show dedup warning if not dismissed
+      if (dupWarning.length > 0 && !dupDismissed) {
+        return; // blocked until user dismisses
+      }
 
       const result = triage || classifyProblem(title, description);
       const id = generateId();
@@ -290,7 +370,7 @@ export default function CitizenPortal() {
         district,
         category: category as Category,
         urgency: urgencyFromScore,
-        mediaUrl: fileNames.length > 0 ? fileNames[0] : '',
+        mediaUrl: mediaBase64 || (filePreviews.length > 0 ? filePreviews[0] : (fileNames.length > 0 ? fileNames[0] : '')),
         status: 'Submitted',
         targetUniversity: result.targetUniversity,
         assignedTeam: '',
@@ -298,22 +378,50 @@ export default function CitizenPortal() {
         fundingAmount: 0,
         submittedAt: new Date().toISOString(),
         geoCoords: geoCoords || undefined,
+        submitterType,
+        comments: [],
+        milestones: [],
+        patentsCount: 0,
+        startupsCreated: 0,
+        publicationsCount: 0,
       };
 
       addProblem(problem);
       setSuccessId(id);
+
+      // Fire notifications
+      addNotification(
+        `New problem "${title}" submitted from ${district}. Routed to ${result.targetUniversity}.`,
+        'university',
+        id
+      );
+      addNotification(
+        `Your problem "${title}" has been registered with ID ${id}. AI routed to ${result.targetUniversity}.`,
+        'citizen',
+        id
+      );
+      addNotification(
+        `New citizen grievance registered: ${id} — ${district}, ${category}. Urgency: ${urgencyFromScore}.`,
+        'government',
+        id
+      );
 
       // Reset
       setTitle('');
       setDistrict('');
       setDescription('');
       setCategory('');
+      setSubmitterType('Individual');
       setGeoDetected(false);
       setGeoCoords(null);
       setFileNames([]);
+      setFilePreviews([]);
+      setMediaBase64('');
       setTriage(null);
+      setDupWarning([]);
+      setDupDismissed(false);
     },
-    [title, district, description, category, triage, fileNames, geoCoords, urgencyFromScore, addProblem, generateId]
+    [title, district, description, category, triage, fileNames, filePreviews, mediaBase64, geoCoords, urgencyFromScore, addProblem, generateId, submitterType, addNotification, dupWarning, dupDismissed]
   );
 
   const copyId = useCallback(() => {
@@ -579,6 +687,45 @@ export default function CitizenPortal() {
               </div>
             </div>
 
+            {/* Submitter Type */}
+            <div style={{ marginBottom: 20 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  marginBottom: 6,
+                }}
+              >
+                {lang === 'hi' ? 'प्रस्तुतकर्ता प्रकार' : 'Submitter Type'}
+              </label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  className="input-field"
+                  value={submitterType}
+                  onChange={(e) => setSubmitterType(e.target.value as SubmitterType)}
+                  style={{ appearance: 'none', paddingRight: 36 }}
+                >
+                  {(Object.keys(SUBMITTER_LABELS) as SubmitterType[]).map((st) => (
+                    <option key={st} value={st}>
+                      {SUBMITTER_LABELS[st]}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    color: 'var(--color-text-muted)',
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Description */}
             <div style={{ marginBottom: 20 }}>
               <label
@@ -606,8 +753,9 @@ export default function CitizenPortal() {
             <div style={{ marginBottom: 20 }}>
               <button
                 type="button"
-                className={geoDetected ? 'btn btn-secondary' : 'btn btn-secondary'}
+                className="btn btn-secondary"
                 onClick={handleGeoDetect}
+                disabled={geoLoading}
                 style={{
                   width: '100%',
                   justifyContent: 'center',
@@ -618,12 +766,15 @@ export default function CitizenPortal() {
                         background: 'rgba(34, 197, 94, 0.06)',
                       }
                     : {}),
+                  ...(geoLoading ? { opacity: 0.7, cursor: 'wait' } : {}),
                 }}
               >
                 <MapPin size={16} />
-                {geoDetected
-                  ? `${L.geoDetected}: ${geoCoords?.lat.toFixed(4)}°N, ${geoCoords?.lng.toFixed(4)}°E`
-                  : L.geoBtn}
+                {geoLoading
+                  ? (lang === 'hi' ? 'GPS खोज रहा है…' : 'Detecting GPS…')
+                  : geoDetected
+                    ? `${L.geoDetected}: ${geoCoords?.lat.toFixed(4)}°N, ${geoCoords?.lng.toFixed(4)}°E`
+                    : L.geoBtn}
               </button>
             </div>
 
@@ -682,7 +833,83 @@ export default function CitizenPortal() {
                   </div>
                 )}
               </label>
+              {/* Image previews */}
+              {filePreviews.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginTop: 10,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {filePreviews.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt={`Preview ${i + 1}`}
+                      style={{
+                        width: 72,
+                        height: 72,
+                        objectFit: 'cover',
+                        borderRadius: 'var(--radius-md, 8px)',
+                        border: '2px solid var(--color-border)',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Deduplication Warning */}
+            {dupWarning.length > 0 && !dupDismissed && (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  background: 'rgba(234, 179, 8, 0.08)',
+                  border: '1.5px solid rgba(234, 179, 8, 0.3)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <AlertTriangle size={16} color="#ca8a04" />
+                  <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#ca8a04' }}>
+                    {lang === 'hi' ? 'संभावित डुप्लिकेट पाया गया' : 'Possible Duplicate Detected'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginBottom: 10, margin: '0 0 10px 0' }}>
+                  {lang === 'hi'
+                    ? 'इसी तरह की समस्याएँ पहले से दर्ज हैं:'
+                    : 'Similar problems have already been reported:'}
+                </p>
+                {dupWarning.slice(0, 3).map((d) => (
+                  <div
+                    key={d.problem.id}
+                    style={{
+                      fontSize: '0.78rem',
+                      padding: '6px 10px',
+                      background: 'rgba(234, 179, 8, 0.05)',
+                      borderRadius: 6,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <strong>{d.problem.id}</strong> — {d.problem.title}
+                    <span style={{ color: '#ca8a04', marginLeft: 8, fontWeight: 600 }}>
+                      {Math.round(d.similarity * 100)}% match
+                    </span>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setDupDismissed(true)}
+                  className="btn btn-secondary"
+                  style={{ marginTop: 10, fontSize: '0.78rem', padding: '6px 14px' }}
+                >
+                  {lang === 'hi' ? 'फिर भी जमा करें' : 'Submit Anyway'}
+                </button>
+              </div>
+            )}
 
             {/* Submit */}
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
@@ -1175,6 +1402,133 @@ export default function CitizenPortal() {
                     </div>
                   </div>
                 </div>
+
+                {/* Citizen Media Evidence */}
+                {trackedProblem.mediaUrl && (
+                  <div
+                    style={{
+                      marginTop: 20,
+                      padding: '14px 16px',
+                      background: 'var(--color-surface-alt)',
+                      borderRadius: 'var(--radius-md)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        color: 'var(--color-text-muted)',
+                        letterSpacing: '0.04em',
+                        marginBottom: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <ImageIcon size={14} /> {lang === 'hi' ? 'साक्ष्य फोटो' : 'Citizen Uploaded Evidence'}
+                    </div>
+                    <img
+                      src={trackedProblem.mediaUrl}
+                      alt="Citizen evidence"
+                      style={{
+                        maxHeight: 240,
+                        maxWidth: '100%',
+                        objectFit: 'cover',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1.5px solid var(--color-border)',
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Milestones Checklist */}
+                {trackedProblem.milestones && trackedProblem.milestones.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 20,
+                      padding: '16px 20px',
+                      background: 'var(--color-surface-alt)',
+                      borderRadius: 'var(--radius-md)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: 'var(--color-primary-dark)',
+                          letterSpacing: '0.04em',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        <CheckSquare size={15} /> {lang === 'hi' ? 'परियोजना मील के पत्थर' : 'Project Milestones & Deliverables'}
+                      </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>
+                        {trackedProblem.milestones.filter((m) => m.completed).length} / {trackedProblem.milestones.length}{' '}
+                        {lang === 'hi' ? 'पूर्ण' : 'Completed'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {trackedProblem.milestones.map((m, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            background: m.completed ? 'rgba(34, 197, 94, 0.08)' : 'var(--color-surface)',
+                            border: `1px solid ${m.completed ? 'rgba(34, 197, 94, 0.3)' : 'var(--color-border)'}`,
+                            borderRadius: 'var(--radius-sm)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {m.completed ? (
+                              <CheckCircle2 size={16} color="#16a34a" />
+                            ) : (
+                              <Clock size={16} color="var(--color-text-muted)" />
+                            )}
+                            <span
+                              style={{
+                                fontSize: '0.82rem',
+                                fontWeight: m.completed ? 600 : 500,
+                                color: m.completed ? '#16a34a' : 'var(--color-text)',
+                                textDecoration: m.completed ? 'line-through' : 'none',
+                              }}
+                            >
+                              {m.label}
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--color-text-muted)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            <Calendar size={12} /> {m.targetDate}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Citizen Discussion Section */}
+                <CitizenCommentSection problem={trackedProblem} lang={lang} />
               </div>
             )}
 
@@ -1355,5 +1709,172 @@ function GraduationCapIcon() {
       <path d="m2 10 10-5 10 5-10 5z" />
       <path d="M6 12v5c0 2 6 3 6 3s6-1 6-3v-5" />
     </svg>
+  );
+}
+
+// ─── Citizen Comment Section ────────────────────────────────────────────────
+
+function CitizenCommentSection({
+  problem,
+  lang,
+}: {
+  problem: Problem;
+  lang: 'en' | 'hi';
+}) {
+  const { updateProblem } = useStore();
+  const { addNotification } = useNotifications();
+  const [commentText, setCommentText] = useState('');
+
+  const comments = problem.comments || [];
+
+  const handlePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    const newComment: Comment = {
+      id: `c-cit-${Date.now()}`,
+      author: lang === 'hi' ? 'नागरिक प्रस्तुतकर्ता' : 'Citizen Submitter',
+      role: 'citizen',
+      text: commentText.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    updateProblem(problem.id, {
+      comments: [...comments, newComment],
+    });
+
+    addNotification(
+      `Citizen added follow-up note on ${problem.id}: "${commentText.trim().slice(0, 40)}..."`,
+      'university',
+      problem.id
+    );
+    addNotification(
+      `Citizen comment on ${problem.id}: "${commentText.trim().slice(0, 40)}..."`,
+      'government',
+      problem.id
+    );
+
+    setCommentText('');
+  };
+
+  const ROLE_COLORS: Record<string, string> = {
+    citizen: '#2563eb',
+    university: '#7c3aed',
+    industry: '#0284c7',
+    government: '#059669',
+    admin: '#059669',
+  };
+
+  const ROLE_LABELS: Record<string, string> = {
+    citizen: lang === 'hi' ? 'नागरिक' : 'Citizen',
+    university: lang === 'hi' ? 'विश्वविद्यालय' : 'University HEI',
+    industry: lang === 'hi' ? 'उद्योग CSR' : 'Industry Sponsor',
+    government: lang === 'hi' ? 'सरकारी नोडल' : 'Government Officer',
+    admin: lang === 'hi' ? 'प्रशासक' : 'Admin',
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 24,
+        padding: '18px 20px',
+        background: 'var(--color-surface-alt)',
+        borderRadius: 'var(--radius-md)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: 'var(--color-text-muted)',
+          letterSpacing: '0.04em',
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        <MessageCircle size={14} /> {lang === 'hi' ? 'हितधारक चर्चा एवं अनुवर्ती टिप्पणियाँ' : 'Stakeholder Communication Log'} ({comments.length})
+      </div>
+
+      {comments.length === 0 && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginBottom: 12 }}>
+          {lang === 'hi'
+            ? 'अभी तक कोई टिप्पणी नहीं है। समाधान प्रक्रिया के संबंध में अतिरिक्त विवरण या प्रश्न नीचे पोस्ट करें।'
+            : 'No follow-up notes yet. Post additional details or queries regarding this resolution below.'}
+        </p>
+      )}
+
+      {comments.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+          {comments.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                padding: '10px 14px',
+                borderLeft: `3px solid ${ROLE_COLORS[c.role] || '#888'}`,
+                background: 'var(--color-surface)',
+                borderRadius: '0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: ROLE_COLORS[c.role] || '#888' }}>
+                    {c.author}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      background: `${ROLE_COLORS[c.role] || '#888'}15`,
+                      color: ROLE_COLORS[c.role] || '#888',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {ROLE_LABELS[c.role] || c.role}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
+                  {new Date(c.timestamp).toLocaleString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', lineHeight: 1.5, color: 'var(--color-text)', margin: 0 }}>
+                {c.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add follow-up comment */}
+      <form onSubmit={handlePost} style={{ display: 'flex', gap: 8 }}>
+        <input
+          className="input-field"
+          placeholder={
+            lang === 'hi'
+              ? 'अतिरिक्त जानकारी या प्रश्न जोड़ें...'
+              : 'Add an update, clarification, or question...'
+          }
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          style={{ flex: 1, fontSize: '0.82rem' }}
+        />
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ padding: '8px 16px', flexShrink: 0 }}
+          disabled={!commentText.trim()}
+        >
+          <Send size={14} /> {lang === 'hi' ? 'भेजें' : 'Send'}
+        </button>
+      </form>
+    </div>
   );
 }

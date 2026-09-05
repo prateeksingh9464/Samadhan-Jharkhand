@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import { useStore } from '@/lib/store';
-import type { Problem, ProblemStatus, Category, Urgency } from '@/lib/types';
+import { useNotifications } from '@/lib/notifications';
+import type { Problem, ProblemStatus, Category, Urgency, Comment } from '@/lib/types';
 import { JHARKHAND_DISTRICTS, CATEGORIES } from '@/lib/types';
 import {
   Landmark,
@@ -28,6 +29,14 @@ import {
   Compass,
   SlidersHorizontal,
   Download,
+  Lightbulb,
+  Award,
+  BookOpen,
+  MessageCircle,
+  Send,
+  CheckSquare,
+  Calendar,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 // ─── Constants & Metadata ───────────────────────────────────────────────────
@@ -79,6 +88,7 @@ const KEY_DISTRICTS = [
 
 export default function GovDashboard() {
   const { problems, updateProblem } = useStore();
+  const { addNotification } = useNotifications();
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,6 +123,28 @@ export default function GovDashboard() {
     () => problems.filter((p) => p.status === 'Pilot_Deployed').length,
     [problems]
   );
+
+  // ─── Innovation Outcome Metrics ───────────────────────────────────────────
+
+  const totalPatents = useMemo(
+    () => problems.reduce((acc, p) => acc + (p.patentsCount || 0), 0),
+    [problems]
+  );
+
+  const totalStartups = useMemo(
+    () => problems.reduce((acc, p) => acc + (p.startupsCreated || 0), 0),
+    [problems]
+  );
+
+  const totalPublications = useMemo(
+    () => problems.reduce((acc, p) => acc + (p.publicationsCount || 0), 0),
+    [problems]
+  );
+
+  const completionRate = useMemo(() => {
+    if (problems.length === 0) return 0;
+    return Math.round((deployedPilots / problems.length) * 100);
+  }, [problems.length, deployedPilots]);
 
   // ─── Lifecycle Funnel Breakdown ───────────────────────────────────────────
 
@@ -207,11 +239,47 @@ export default function GovDashboard() {
   // Promote problem status handler
   const handlePromoteStatus = useCallback(
     (id: string, newStatus: ProblemStatus) => {
-      updateProblem(id, { status: newStatus });
-      setAuditTarget((prev) => (prev && prev.id === id ? { ...prev, status: newStatus } : prev));
+      const targetProb = problems.find((p) => p.id === id);
+      const updates: Partial<Problem> = { status: newStatus };
+
+      if (newStatus === 'In_Proposal' && (!targetProb?.assignedTeam || !targetProb.assignedTeam.trim())) {
+        updates.assignedTeam = `${targetProb?.targetUniversity || 'Nodal HEI'} Research Team`;
+      }
+
+      if (newStatus === 'Industry_Pledged' || newStatus === 'Pilot_Deployed') {
+        if (!targetProb?.assignedTeam || !targetProb.assignedTeam.trim()) {
+          updates.assignedTeam = `${targetProb?.targetUniversity || 'State Technical Directorate'} Field Pilot Unit`;
+        }
+        if (!targetProb?.industrySponsor || !targetProb.industrySponsor.trim()) {
+          updates.industrySponsor = 'District Mineral Foundation Trust (DMFT) & CSR Co-Fund';
+        }
+        if (!targetProb?.fundingAmount || targetProb.fundingAmount === 0) {
+          updates.fundingAmount = 350000;
+        }
+      }
+
+      updateProblem(id, updates);
+      setAuditTarget((prev) => (prev && prev.id === id ? { ...prev, ...updates, status: newStatus } : prev));
       setSuccessToast({ id, status: newStatus });
+
+      const statusLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
+      addNotification(
+        `State Government updated status of ${id} to "${statusLabel}".`,
+        'citizen',
+        id
+      );
+      addNotification(
+        `Government directive: Problem ${id} advanced to "${statusLabel}".`,
+        'university',
+        id
+      );
+      addNotification(
+        `Project ${id} lifecycle promoted to "${statusLabel}".`,
+        'industry',
+        id
+      );
     },
-    [updateProblem]
+    [problems, updateProblem, addNotification]
   );
 
   return (
@@ -363,7 +431,7 @@ export default function GovDashboard() {
           value={formatINR(totalCsrFunds)}
           subtext="Corporate grants authorized under Sec 135"
           icon={<IndianRupee size={22} />}
-          badge="Tata Steel & PSUs"
+          badge="CSR Consortium"
           color="#059669"
         />
 
@@ -375,6 +443,51 @@ export default function GovDashboard() {
           icon={<CheckCircle2 size={22} />}
           badge="High Impact"
           color="#06b6d4"
+        />
+      </div>
+
+      {/* ─── Innovation Outcomes KPI Row ──────────────────────────────── */}
+      <div
+        className="animate-fade-in-up"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+          gap: 16,
+          marginBottom: 28,
+          animationDelay: '0.08s',
+        }}
+      >
+        <GovKpiCard
+          label="Patents Filed"
+          value={totalPatents.toString()}
+          subtext="IP generated from societal innovation projects"
+          icon={<Lightbulb size={22} />}
+          badge="Innovation"
+          color="#eab308"
+        />
+        <GovKpiCard
+          label="Startups Incubated"
+          value={totalStartups.toString()}
+          subtext="Ventures spun off from HEI research"
+          icon={<Award size={22} />}
+          badge="Ecosystem"
+          color="#f97316"
+        />
+        <GovKpiCard
+          label="Research Publications"
+          value={totalPublications.toString()}
+          subtext="Papers & reports published from projects"
+          icon={<BookOpen size={22} />}
+          badge="Academic"
+          color="#6366f1"
+        />
+        <GovKpiCard
+          label="Project Completion Rate"
+          value={`${completionRate}%`}
+          subtext="Challenges reaching Pilot Deployed stage"
+          icon={<TrendingUp size={22} />}
+          badge={completionRate >= 50 ? 'On Track' : 'Needs Push'}
+          color={completionRate >= 50 ? '#059669' : '#dc2626'}
         />
       </div>
 
@@ -1365,6 +1478,121 @@ function AuditDrawer({
             </div>
           </div>
 
+          {/* Citizen Media Evidence */}
+          {problem.mediaUrl ? (
+            <div
+              style={{
+                marginBottom: 20,
+                padding: '14px 16px',
+                background: 'var(--color-surface-alt)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: 'var(--color-text-muted)',
+                  letterSpacing: '0.04em',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <ImageIcon size={13} /> Citizen Evidence Photo
+              </div>
+              <img
+                src={problem.mediaUrl}
+                alt="Citizen Evidence"
+                style={{
+                  maxHeight: 220,
+                  maxWidth: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--color-border)',
+                }}
+              />
+            </div>
+          ) : null}
+
+          {/* Project Milestones Roadmap */}
+          {problem.milestones && problem.milestones.length > 0 && (
+            <div
+              style={{
+                marginBottom: 20,
+                padding: '16px 18px',
+                background: 'var(--color-surface-alt)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: 'var(--color-primary-dark)',
+                  letterSpacing: '0.04em',
+                  marginBottom: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CheckSquare size={14} /> Project Milestones Status
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                  {problem.milestones.filter((m) => m.completed).length} of {problem.milestones.length} Completed
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {problem.milestones.map((m, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: m.completed ? 'rgba(34, 197, 94, 0.08)' : 'var(--color-surface)',
+                      border: `1px solid ${m.completed ? 'rgba(34, 197, 94, 0.3)' : 'var(--color-border)'}`,
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {m.completed ? (
+                        <CheckCircle2 size={15} color="#16a34a" />
+                      ) : (
+                        <Clock size={15} color="var(--color-text-muted)" />
+                      )}
+                      <span
+                        style={{
+                          fontSize: '0.82rem',
+                          fontWeight: m.completed ? 600 : 500,
+                          color: m.completed ? '#16a34a' : 'var(--color-text)',
+                          textDecoration: m.completed ? 'line-through' : 'none',
+                        }}
+                      >
+                        {m.label}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                      {m.targetDate}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Innovation Outcomes Editor */}
+          <GovInnovationEditor problem={problem} />
+
+          {/* Stakeholder Communication Thread */}
+          <GovCommentSection problem={problem} />
+
           {/* State Action: Lifecycle Transition */}
           <div
             style={{
@@ -1372,6 +1600,7 @@ function AuditDrawer({
               background: 'rgba(4, 120, 87, 0.05)',
               border: '1.5px solid rgba(4, 120, 87, 0.2)',
               borderRadius: 'var(--radius-md)',
+              marginTop: 20,
             }}
           >
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#047857', marginBottom: 6 }}>
@@ -1435,4 +1664,248 @@ function formatINR(n: number): string {
   if (n >= 100000) return `₹${(n / 100000).toFixed(2)} Lakh`;
   if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
   return `₹${n}`;
+}
+
+// ─── Gov Innovation Editor ──────────────────────────────────────────────────
+
+function GovInnovationEditor({ problem }: { problem: Problem }) {
+  const { updateProblem } = useStore();
+  const { addNotification } = useNotifications();
+  const [patents, setPatents] = useState(problem.patentsCount || 0);
+  const [startups, setStartups] = useState(problem.startupsCreated || 0);
+  const [publications, setPublications] = useState(problem.publicationsCount || 0);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    updateProblem(problem.id, {
+      patentsCount: Number(patents) || 0,
+      startupsCreated: Number(startups) || 0,
+      publicationsCount: Number(publications) || 0,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+
+    addNotification(
+      `Innovation metrics updated for ${problem.id}: ${patents} patents, ${startups} startups, ${publications} papers.`,
+      'government',
+      problem.id
+    );
+  };
+
+  return (
+    <div
+      style={{
+        marginBottom: 20,
+        padding: '16px 18px',
+        background: 'rgba(234, 179, 8, 0.05)',
+        border: '1px solid rgba(234, 179, 8, 0.2)',
+        borderRadius: 'var(--radius-md)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: '#ca8a04',
+          letterSpacing: '0.04em',
+          marginBottom: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Lightbulb size={14} /> Innovation & Ecosystem Outcomes
+        </span>
+        {saved && (
+          <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>
+            ✓ Metrics Saved
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 600 }}>
+            Patents Filed
+          </label>
+          <input
+            type="number"
+            min="0"
+            className="input-field"
+            value={patents}
+            onChange={(e) => setPatents(Number(e.target.value))}
+            style={{ fontSize: '0.85rem', padding: '6px 10px' }}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 600 }}>
+            Startups Incubated
+          </label>
+          <input
+            type="number"
+            min="0"
+            className="input-field"
+            value={startups}
+            onChange={(e) => setStartups(Number(e.target.value))}
+            style={{ fontSize: '0.85rem', padding: '6px 10px' }}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 600 }}>
+            Publications
+          </label>
+          <input
+            type="number"
+            min="0"
+            className="input-field"
+            value={publications}
+            onChange={(e) => setPublications(Number(e.target.value))}
+            style={{ fontSize: '0.85rem', padding: '6px 10px' }}
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={handleSave}
+        style={{ fontSize: '0.78rem', padding: '6px 14px', borderColor: '#ca8a04', color: '#ca8a04' }}
+      >
+        Save Innovation Outcomes
+      </button>
+    </div>
+  );
+}
+
+// ─── Gov Comment Section ────────────────────────────────────────────────────
+
+function GovCommentSection({ problem }: { problem: Problem }) {
+  const { updateProblem } = useStore();
+  const { addNotification } = useNotifications();
+  const [commentText, setCommentText] = useState('');
+
+  const comments = problem.comments || [];
+
+  const handlePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    const newComment: Comment = {
+      id: `c-gov-${Date.now()}`,
+      author: 'Jharkhand S&T Directorate',
+      role: 'government',
+      text: commentText.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    updateProblem(problem.id, {
+      comments: [...comments, newComment],
+    });
+
+    addNotification(
+      `Government directive issued on ${problem.id}: "${commentText.trim().slice(0, 45)}..."`,
+      'university',
+      problem.id
+    );
+    addNotification(
+      `Official update on your problem ${problem.id} from State Government.`,
+      'citizen',
+      problem.id
+    );
+
+    setCommentText('');
+  };
+
+  const ROLE_COLORS: Record<string, string> = {
+    citizen: '#2563eb',
+    university: '#7c3aed',
+    industry: '#0284c7',
+    government: '#059669',
+    admin: '#059669',
+  };
+
+  return (
+    <div
+      style={{
+        marginBottom: 20,
+        padding: '16px 18px',
+        background: 'var(--color-surface-alt)',
+        borderRadius: 'var(--radius-md)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: 'var(--color-text-muted)',
+          letterSpacing: '0.04em',
+          marginBottom: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        <MessageCircle size={14} /> Stakeholder Discussion & Directives ({comments.length})
+      </div>
+
+      {comments.length === 0 && (
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginBottom: 10 }}>
+          No communication records yet. Issue state directives or guidance below.
+        </p>
+      )}
+
+      {comments.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12, maxHeight: 180, overflowY: 'auto' }}>
+          {comments.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                padding: '8px 12px',
+                borderLeft: `3px solid ${ROLE_COLORS[c.role] || '#888'}`,
+                background: 'var(--color-surface)',
+                borderRadius: '0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: ROLE_COLORS[c.role] || '#888' }}>
+                  {c.author} ({c.role})
+                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>
+                  {new Date(c.timestamp).toLocaleString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.8rem', lineHeight: 1.4, color: 'var(--color-text)', margin: 0 }}>
+                {c.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Post comment */}
+      <form onSubmit={handlePost} style={{ display: 'flex', gap: 8 }}>
+        <input
+          className="input-field"
+          placeholder="Issue government note or directive..."
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          style={{ flex: 1, fontSize: '0.8rem', padding: '6px 10px' }}
+        />
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ padding: '6px 14px', flexShrink: 0, fontSize: '0.8rem' }}
+          disabled={!commentText.trim()}
+        >
+          <Send size={13} /> Issue Note
+        </button>
+      </form>
+    </div>
+  );
 }
