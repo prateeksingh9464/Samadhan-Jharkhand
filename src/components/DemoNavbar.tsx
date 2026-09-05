@@ -17,6 +17,7 @@ const ROLE_ICONS: Record<Role, React.ReactNode> = {
   university: <GraduationCap size={15} />,
   industry: <Building2 size={15} />,
   government: <Landmark size={15} />,
+  admin: <Landmark size={15} />,
 };
 
 const ROLES: Role[] = ['citizen', 'university', 'industry', 'government'];

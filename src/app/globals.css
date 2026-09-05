@@ -194,6 +194,14 @@ body {
   border-color: var(--color-primary-light);
 }
 
+.form-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+  color: var(--color-text-muted);
+}
+
 /* ─── Navbar Role Pills ──────────────────────────────────────────────────── */
 
 .role-pill {

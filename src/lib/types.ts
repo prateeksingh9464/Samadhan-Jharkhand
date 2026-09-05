@@ -42,13 +42,14 @@ export interface AiTriageResult {
   nepAlignmentNote: string;
 }
 
-export type Role = 'citizen' | 'university' | 'industry' | 'government';
+export type Role = 'citizen' | 'university' | 'industry' | 'government' | 'admin';
 
 export const ROLE_LABELS: Record<Role, string> = {
   citizen: 'Citizen View',
   university: 'University: IIT ISM Dhanbad',
   industry: 'Industry: Tata Steel CSR',
   government: 'Gov Dashboard: Govt of Jharkhand',
+  admin: 'Gov Dashboard: Govt of Jharkhand',
 };
 
 export const JHARKHAND_DISTRICTS = [
