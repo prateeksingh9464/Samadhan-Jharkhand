@@ -64,6 +64,19 @@ export default function DemoNavbar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [bellOpen]);
 
+  const activePillRef = useRef<HTMLButtonElement>(null);
+
+  // Auto-scroll the active pill into view on mobile whenever role changes
+  useEffect(() => {
+    if (activePillRef.current) {
+      activePillRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [role]);
+
   return (
     <header
       style={{
@@ -80,114 +93,24 @@ export default function DemoNavbar() {
       }}
     >
       {/* Main nav */}
-      <div
-        className="navbar-container"
-        style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          boxSizing: 'border-box',
-          width: '100%',
-        }}
-      >
+      <div className="navbar-container">
         {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              color: '#fff',
-              flexShrink: 0,
-            }}
-          >
+        <div className="navbar-brand">
+          <div className="navbar-logo">
             सJ
           </div>
           <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: '1.05rem',
-                color: '#fff',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <div className="navbar-brand-title">
               Samadhan Jharkhand
             </div>
-            <div
-              style={{
-                fontSize: '0.7rem',
-                color: 'rgba(255,255,255,0.7)',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <div className="navbar-brand-subtitle">
               Societal Innovation Collaboration Portal
             </div>
           </div>
         </div>
 
-        {/* Right section: role nav + bell */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Role switcher with notification counters */}
-          <nav className="navbar-role-nav">
-            {ROLES.map((r) => {
-              const roleUnread = getUnreadCount(r);
-              const isActive = r === role;
-              return (
-                <button
-                  key={r}
-                  onClick={() => {
-                    setRole(r);
-                    markAllRead(r);
-                  }}
-                  className={
-                    isActive ? 'role-pill role-pill-active' : 'role-pill role-pill-inactive'
-                  }
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    flexShrink: 0,
-                    position: 'relative',
-                  }}
-                  title={`Switch to ${ROLE_LABELS[r]}${roleUnread > 0 ? ` (${roleUnread} new notifications)` : ''}`}
-                >
-                  {ROLE_ICONS[r]}
-                  <span>{ROLE_LABELS[r]}</span>
-                  {roleUnread > 0 && (
-                    <span
-                      className={`nav-role-badge ${
-                        isActive ? 'nav-role-badge-active' : 'nav-role-badge-inactive'
-                      }`}
-                      aria-label={`${roleUnread} unread notifications`}
-                    >
-                      {roleUnread > 9 ? '9+' : roleUnread}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Notification Bell */}
-          <div ref={bellRef} style={{ position: 'relative' }}>
+        {/* Notification Bell */}
+        <div className="navbar-bell-container" ref={bellRef}>
             <button
               onClick={() => {
                 const nextOpen = !bellOpen;
@@ -246,7 +169,7 @@ export default function DemoNavbar() {
                   position: 'absolute',
                   top: 44,
                   right: 0,
-                  width: 370,
+                  width: 'min(370px, calc(100vw - 24px))',
                   maxHeight: 480,
                   overflowY: 'auto',
                   background: 'var(--color-surface)',
@@ -544,8 +467,51 @@ export default function DemoNavbar() {
               </div>
             )}
           </div>
+
+          {/* Role Navigation */}
+          <div className="navbar-role-wrapper">
+            <nav className="navbar-role-nav" aria-label="Portal Stakeholder Roles">
+              {ROLES.map((r) => {
+                const roleUnread = getUnreadCount(r);
+                const isActive = r === role;
+                return (
+                  <button
+                    key={r}
+                    ref={isActive ? activePillRef : undefined}
+                    onClick={() => {
+                      setRole(r);
+                      markAllRead(r);
+                    }}
+                    className={
+                      isActive ? 'role-pill role-pill-active' : 'role-pill role-pill-inactive'
+                    }
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      flexShrink: 0,
+                      position: 'relative',
+                    }}
+                    title={`Switch to ${ROLE_LABELS[r]}${roleUnread > 0 ? ` (${roleUnread} new notifications)` : ''}`}
+                  >
+                    {ROLE_ICONS[r]}
+                    <span>{ROLE_LABELS[r]}</span>
+                    {roleUnread > 0 && (
+                      <span
+                        className={`nav-role-badge ${
+                          isActive ? 'nav-role-badge-active' : 'nav-role-badge-inactive'
+                        }`}
+                        aria-label={`${roleUnread} unread notifications`}
+                      >
+                        {roleUnread > 9 ? '9+' : roleUnread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
   );
 }

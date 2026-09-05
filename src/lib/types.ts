@@ -107,8 +107,8 @@ export const ROLE_LABELS: Record<Role, string> = {
   citizen: 'Citizen View',
   university: 'University Workspace',
   industry: 'Industry & CSR Hub',
-  government: 'Gov Dashboard: Govt of Jharkhand',
-  admin: 'Gov Dashboard: Govt of Jharkhand',
+  government: 'Gov Dashboard',
+  admin: 'Gov Dashboard',
 };
 
 export const JHARKHAND_DISTRICTS = [
