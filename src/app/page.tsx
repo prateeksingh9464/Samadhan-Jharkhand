@@ -1,69 +1,197 @@
-import Image from "next/image";
+'use client';
+
+import { useRole } from '@/lib/store';
+import CitizenPortal from '@/components/citizen/CitizenPortal';
+import {
+  GraduationCap,
+  Building2,
+  Landmark,
+  ArrowRight,
+  Construction,
+} from 'lucide-react';
 
 export default function Home() {
+  const { role } = useRole();
+
+  if (role === 'citizen') {
+    return <CitizenPortal />;
+  }
+
+  if (role === 'university') {
+    return (
+      <Phase2Card
+        icon={<GraduationCap size={40} />}
+        title="University Proposal Builder"
+        subtitle="IIT (ISM) Dhanbad — Research Proposal & Student Team Management"
+        features={[
+          'Browse routed problems from citizen submissions',
+          'Form interdisciplinary student research teams',
+          'Draft and submit research proposals with NEP 2020 alignment',
+          'Track proposal lifecycle from submission to pilot deployment',
+        ]}
+      />
+    );
+  }
+
+  if (role === 'industry') {
+    return (
+      <Phase2Card
+        icon={<Building2 size={40} />}
+        title="Industry CSR Pledge Workflow"
+        subtitle="Tata Steel CSR Foundation — Funding & Partnership Portal"
+        features={[
+          'Browse vetted university proposals seeking funding',
+          'Pledge CSR funds against specific proposals',
+          'Track fund utilization and milestone delivery',
+          'Generate CSR compliance reports (Section 135)',
+        ]}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <Phase2Card
+      icon={<Landmark size={40} />}
+      title="Government Dashboard"
+      subtitle="Government of Jharkhand — District-Level Oversight & Analytics"
+      features={[
+        'Interactive district heatmap of citizen problems',
+        'Category-wise and urgency-wise analytics charts',
+        'Track pipeline: Submitted → Routed → Proposal → Funded → Deployed',
+        'Generate block-level progress reports for the CM dashboard',
+      ]}
+    />
+  );
+}
+
+// ─── Phase 2 Placeholder Card ───────────────────────────────────────────────
+
+function Phase2Card({
+  icon,
+  title,
+  subtitle,
+  features,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  features: string[];
+}) {
+  return (
+    <div
+      style={{
+        maxWidth: 680,
+        margin: '60px auto',
+        padding: '0 20px',
+      }}
+    >
+      <div
+        className="glass-card animate-fade-in-up"
+        style={{ padding: '48px 36px', textAlign: 'center' }}
+      >
+        {/* Icon */}
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+            color: '#fff',
+          }}
+        >
+          {icon}
+        </div>
+
+        {/* Title */}
+        <h2
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 800,
+            color: 'var(--color-text)',
+            marginBottom: 8,
+          }}
+        >
+          {title}
+        </h2>
+        <p
+          style={{
+            fontSize: '0.9rem',
+            color: 'var(--color-text-muted)',
+            marginBottom: 28,
+          }}
+        >
+          {subtitle}
+        </p>
+
+        {/* Phase 2 badge */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 16px',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(245, 158, 11, 0.1)',
+            color: '#d97706',
+            fontWeight: 700,
+            fontSize: '0.78rem',
+            marginBottom: 24,
+          }}
+        >
+          <Construction size={14} />
+          Phase 2 — Coming Next
+        </div>
+
+        {/* Feature list */}
+        <div
+          style={{
+            textAlign: 'left',
+            padding: '20px 24px',
+            background: 'var(--color-surface-alt)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <p
+            style={{
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              color: 'var(--color-text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              marginBottom: 12,
+            }}
+          >
+            Planned Features
           </p>
+          {features.map((f, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+                marginBottom: i < features.length - 1 ? 10 : 0,
+                fontSize: '0.88rem',
+                color: 'var(--color-text)',
+              }}
+            >
+              <ArrowRight
+                size={14}
+                style={{
+                  marginTop: 4,
+                  flexShrink: 0,
+                  color: 'var(--color-primary-light)',
+                }}
+              />
+              <span>{f}</span>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
