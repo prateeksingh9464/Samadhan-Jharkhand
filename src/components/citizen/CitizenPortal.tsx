@@ -9,6 +9,7 @@ import {
   type AiTriageResult,
   type Category,
   type Problem,
+  type ProblemStatus,
 } from '@/lib/types';
 import {
   Send,
@@ -23,6 +24,11 @@ import {
   Sparkles,
   ShieldCheck,
   ChevronDown,
+  Search,
+  Building2,
+  GraduationCap,
+  Tag,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ─── Hindi / English label map ──────────────────────────────────────────────
@@ -54,6 +60,28 @@ const LABELS = {
     successMsg: 'Your issue has been registered. Use this Tracking ID:',
     close: 'Close',
     langToggle: 'हिन्दी',
+    tabReport: 'Report a Problem',
+    tabTrack: 'Track Issue Status',
+    trackHeading: 'Citizen Grievance & Solution Tracker',
+    trackSubtitle: 'Enter your tracking ID to see real-time updates from universities, industry CSR sponsors, and state monitoring.',
+    trackInputPh: 'Enter Tracking ID (e.g., JH-PRB-2026-4991)',
+    trackBtn: 'Track Status',
+    trackClear: 'Clear Search',
+    trackNotFound: 'No problem report found matching',
+    trackNotFoundHint: 'Please check your tracking ID (format: JH-PRB-2026-XXXX) or select one of the recent submissions below.',
+    recentTitle: 'Recently Registered Community Reports:',
+    trackNowBtn: 'Track This Issue Now →',
+    viewTimeline: '5-Stage Lifecycle Progress',
+    stageSubmitted: '1. Registered & Categorized',
+    stageSubmittedDesc: 'AI triage complete; logged into state database.',
+    stageRouted: '2. Routed to University',
+    stageRoutedDesc: 'Assigned to nodal HEI department for technical R&D.',
+    stageProposal: '3. Technical Proposal',
+    stageProposalDesc: 'Faculty & student innovation team drafting solution blueprint.',
+    stagePledged: '4. CSR Funding Pledged',
+    stagePledgedDesc: 'Corporate industry partner committed grant/materials.',
+    stageDeployed: '5. Field Pilot Deployed',
+    stageDeployedDesc: 'Ground implementation and monitoring active in district.',
   },
   hi: {
     heading: 'समस्या दर्ज करें',
@@ -81,6 +109,28 @@ const LABELS = {
     successMsg: 'आपकी समस्या दर्ज हो गई है। ट्रैकिंग ID:',
     close: 'बंद करें',
     langToggle: 'English',
+    tabReport: 'समस्या दर्ज करें',
+    tabTrack: 'समस्या की स्थिति ट्रैक करें',
+    trackHeading: 'नागरिक समस्या एवं समाधान ट्रैकर',
+    trackSubtitle: 'विश्वविद्यालयों, उद्योग CSR प्रायोजकों और सरकारी निगरानी से रीयल-टाइम अपडेट देखने के लिए अपनी ट्रैकिंग ID दर्ज करें।',
+    trackInputPh: 'ट्रैकिंग ID दर्ज करें (उदा., JH-PRB-2026-4991)',
+    trackBtn: 'स्थिति जांचें',
+    trackClear: 'खोज हटाएं',
+    trackNotFound: 'इस ID से कोई समस्या रिपोर्ट नहीं मिली:',
+    trackNotFoundHint: 'कृपया अपनी ट्रैकिंग संख्या (प्रारूप: JH-PRB-2026-XXXX) जांचें या नीचे दी गई हालिया रिपोर्ट पर क्लिक करें।',
+    recentTitle: 'हाल ही में दर्ज सामुदायिक रिपोर्टें:',
+    trackNowBtn: 'इस समस्या को अभी ट्रैक करें →',
+    viewTimeline: '5-चरणीय जीवनचक्र प्रगति',
+    stageSubmitted: '1. दर्ज एवं वर्गीकृत',
+    stageSubmittedDesc: 'AI विश्लेषण पूर्ण; राज्य डेटाबेस में सुरक्षित।',
+    stageRouted: '2. विश्वविद्यालय को अग्रेषित',
+    stageRoutedDesc: 'तकनीकी R&D के लिए नोडल HEI विभाग को सौंपा गया।',
+    stageProposal: '3. तकनीकी प्रस्ताव',
+    stageProposalDesc: 'फैकल्टी एवं छात्र नवाचार टीम समाधान तैयार कर रही है।',
+    stagePledged: '4. CSR फंडिंग स्वीकृत',
+    stagePledgedDesc: 'कॉरपोरेट उद्योग साझेदार ने अनुदान/सामग्री की प्रतिज्ञा की।',
+    stageDeployed: '5. फ़ील्ड पायलट तैनात',
+    stageDeployedDesc: 'जमीनी कार्यान्वयन और निगरानी सक्रिय।',
   },
 } as const;
 
@@ -115,12 +165,40 @@ const DISTRICT_COORDS: Record<string, { lat: number; lng: number }> = {
   Garhwa: { lat: 24.1750, lng: 83.8072 },
 };
 
+// ─── Stage Configuration for Problem Tracking ─────────────────────────────
+
+const STAGE_CONFIG: {
+  status: ProblemStatus;
+  labelKey: 'stageSubmitted' | 'stageRouted' | 'stageProposal' | 'stagePledged' | 'stageDeployed';
+  descKey: 'stageSubmittedDesc' | 'stageRoutedDesc' | 'stageProposalDesc' | 'stagePledgedDesc' | 'stageDeployedDesc';
+  step: number;
+}[] = [
+  { status: 'Submitted', labelKey: 'stageSubmitted', descKey: 'stageSubmittedDesc', step: 1 },
+  { status: 'Routed_To_HEI', labelKey: 'stageRouted', descKey: 'stageRoutedDesc', step: 2 },
+  { status: 'In_Proposal', labelKey: 'stageProposal', descKey: 'stageProposalDesc', step: 3 },
+  { status: 'Industry_Pledged', labelKey: 'stagePledged', descKey: 'stagePledgedDesc', step: 4 },
+  { status: 'Pilot_Deployed', labelKey: 'stageDeployed', descKey: 'stageDeployedDesc', step: 5 },
+];
+
+const STATUS_STEPS: ProblemStatus[] = [
+  'Submitted',
+  'Routed_To_HEI',
+  'In_Proposal',
+  'Industry_Pledged',
+  'Pilot_Deployed',
+];
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function CitizenPortal() {
-  const { addProblem } = useStore();
+  const { problems, addProblem } = useStore();
   const [lang, setLang] = useState<Lang>('en');
   const L = LABELS[lang];
+
+  // Navigation tab: 'report' vs 'track'
+  const [activeTab, setActiveTab] = useState<'report' | 'track'>('report');
+  const [trackSearchId, setTrackSearchId] = useState('');
+  const [searchedId, setSearchedId] = useState('');
 
   // Form state
   const [title, setTitle] = useState('');
@@ -138,6 +216,13 @@ export default function CitizenPortal() {
   // Success modal
   const [successId, setSuccessId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Lookup problem for tracking
+  const trackedProblem = useMemo(() => {
+    if (!searchedId.trim()) return null;
+    const q = searchedId.trim().toLowerCase();
+    return problems.find((p) => p.id.toLowerCase() === q) || null;
+  }, [problems, searchedId]);
 
   // Debounced AI triage as user types
   useEffect(() => {
@@ -290,21 +375,81 @@ export default function CitizenPortal() {
               marginBottom: 8,
             }}
           >
-            {L.heading}
+            {activeTab === 'report' ? L.heading : L.trackHeading}
           </h1>
           <p
             style={{
               color: 'var(--color-text-muted)',
               fontSize: '1rem',
-              maxWidth: 560,
-              margin: '0 auto',
+              maxWidth: 580,
+              margin: '0 auto 20px',
             }}
           >
-            {L.subtitle}
+            {activeTab === 'report' ? L.subtitle : L.trackSubtitle}
           </p>
+
+          {/* Segmented Pill Tab Switcher */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                padding: 4,
+                background: 'var(--color-surface-alt)',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTab('report')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === 'report' ? 'var(--color-primary)' : 'transparent',
+                  color: activeTab === 'report' ? '#fff' : 'var(--color-text-muted)',
+                  boxShadow: activeTab === 'report' ? 'var(--shadow-sm)' : 'none',
+                  transition: 'all var(--transition-base)',
+                }}
+              >
+                <Send size={15} />
+                {L.tabReport}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('track')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === 'track' ? 'var(--color-primary)' : 'transparent',
+                  color: activeTab === 'track' ? '#fff' : 'var(--color-text-muted)',
+                  boxShadow: activeTab === 'track' ? 'var(--shadow-sm)' : 'none',
+                  transition: 'all var(--transition-base)',
+                }}
+              >
+                <Search size={15} />
+                {L.tabTrack}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Main grid: form + AI panel */}
+        {activeTab === 'report' && (
         <div
           style={{
             display: 'grid',
@@ -752,6 +897,324 @@ export default function CitizenPortal() {
             )}
           </div>
         </div>
+        )}
+
+        {/* ─── Tracking View ─────────────────────────────────────────── */}
+        {activeTab === 'track' && (
+          <div className="animate-fade-in-up" style={{ maxWidth: 880, margin: '0 auto', width: '100%' }}>
+            {/* Search Card */}
+            <div className="glass-card" style={{ padding: '24px 28px', marginBottom: 24 }}>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (trackSearchId.trim()) setSearchedId(trackSearchId.trim());
+                }}
+                style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}
+              >
+                <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
+                  <Search
+                    size={18}
+                    style={{
+                      position: 'absolute',
+                      left: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--color-text-muted)',
+                    }}
+                  />
+                  <input
+                    className="input-field"
+                    type="text"
+                    placeholder={L.trackInputPh}
+                    value={trackSearchId}
+                    onChange={(e) => setTrackSearchId(e.target.value)}
+                    style={{ paddingLeft: 42, fontSize: '0.95rem' }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ padding: '10px 24px' }}>
+                  <Search size={16} />
+                  {L.trackBtn}
+                </button>
+                {searchedId && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setTrackSearchId('');
+                      setSearchedId('');
+                    }}
+                  >
+                    {L.trackClear}
+                  </button>
+                )}
+              </form>
+
+              {/* Quick Select Recent Problems */}
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginBottom: 8, fontWeight: 600 }}>
+                  {L.recentTitle}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {problems.slice(0, 5).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setTrackSearchId(p.id);
+                        setSearchedId(p.id);
+                      }}
+                      style={{
+                        background:
+                          searchedId.toLowerCase() === p.id.toLowerCase()
+                            ? 'var(--color-primary)'
+                            : 'var(--color-surface-alt)',
+                        color:
+                          searchedId.toLowerCase() === p.id.toLowerCase()
+                            ? '#fff'
+                            : 'var(--color-text)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-full)',
+                        padding: '4px 12px',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all var(--transition-base)',
+                      }}
+                    >
+                      {p.id} ({p.category})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Tracked Problem Result */}
+            {searchedId && trackedProblem && (
+              <div className="glass-card animate-fade-in-up" style={{ padding: 32, marginBottom: 24 }}>
+                {/* Header info */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: 14,
+                    marginBottom: 20,
+                    paddingBottom: 18,
+                    borderBottom: '1px solid var(--color-border)',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 280 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                      <span
+                        style={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.9rem',
+                          fontWeight: 700,
+                          background: 'rgba(15, 118, 110, 0.1)',
+                          color: 'var(--color-primary-dark)',
+                          padding: '3px 10px',
+                          borderRadius: 'var(--radius-md)',
+                        }}
+                      >
+                        {trackedProblem.id}
+                      </span>
+                      <span className={`badge badge-${trackedProblem.urgency.toLowerCase()}`}>
+                        {trackedProblem.urgency} Priority
+                      </span>
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
+                        <Tag size={12} /> {trackedProblem.category}
+                      </span>
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
+                        <MapPin size={12} /> {trackedProblem.district}
+                      </span>
+                    </div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px' }}>
+                      {trackedProblem.title}
+                    </h2>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.92rem', margin: 0, lineHeight: 1.5 }}>
+                      {trackedProblem.description}
+                    </p>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+                      Submitted Date
+                    </div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-text)' }}>
+                      {new Date(trackedProblem.submittedAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5-Stage Stepper / Timeline */}
+                <div style={{ marginBottom: 28 }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', letterSpacing: '0.04em', marginBottom: 14 }}>
+                    {L.viewTimeline}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                    {STAGE_CONFIG.map((stage, idx) => {
+                      const currentIdx = STATUS_STEPS.indexOf(trackedProblem.status);
+                      const isPassed = idx < currentIdx;
+                      const isCurrent = idx === currentIdx;
+
+                      return (
+                        <div
+                          key={stage.status}
+                          style={{
+                            padding: '14px 12px',
+                            borderRadius: 'var(--radius-md)',
+                            background: isCurrent
+                              ? 'rgba(15, 118, 110, 0.08)'
+                              : isPassed
+                              ? 'rgba(34, 197, 94, 0.05)'
+                              : 'var(--color-surface-alt)',
+                            border: isCurrent
+                              ? '1.5px solid var(--color-primary)'
+                              : isPassed
+                              ? '1.5px solid rgba(34, 197, 94, 0.3)'
+                              : '1px dashed var(--color-border)',
+                            position: 'relative',
+                            transition: 'all var(--transition-base)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <div
+                              style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                background: isPassed
+                                  ? 'var(--color-success)'
+                                  : isCurrent
+                                  ? 'var(--color-primary)'
+                                  : 'var(--color-border)',
+                                color: isPassed || isCurrent ? '#fff' : 'var(--color-text-muted)',
+                              }}
+                            >
+                              {isPassed ? <CheckCircle2 size={15} /> : stage.step}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                color: isCurrent
+                                  ? 'var(--color-primary-dark)'
+                                  : isPassed
+                                  ? 'var(--color-success)'
+                                  : 'var(--color-text-muted)',
+                              }}
+                            >
+                              {isCurrent ? 'Active Stage' : isPassed ? 'Completed' : 'Upcoming'}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--color-text)', marginBottom: 4 }}>
+                            {L[stage.labelKey]}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                            {L[stage.descKey]}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Stakeholder Details Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: 16,
+                    background: 'var(--color-surface-alt)',
+                    padding: 18,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+                      <GraduationCap size={14} /> Assigned HEI Institution
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-primary-dark)' }}>
+                      {trackedProblem.targetUniversity || 'Pending Routing'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      Applied Engineering & Capstone Hub
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+                      <Building2 size={14} /> CSR Industry Partner
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)' }}>
+                      {trackedProblem.industrySponsor || 'Open for CSR Adoption'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      {trackedProblem.fundingAmount > 0
+                        ? `Pledged Funding: ₹${(trackedProblem.fundingAmount / 100000).toFixed(1)} Lakhs`
+                        : 'Awaiting CSR sponsorship round'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+                      <ShieldCheck size={14} /> Innovation Team
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)' }}>
+                      {trackedProblem.assignedTeam || 'Team Allocation in Progress'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      Aligned with NEP 2020 experiential learning
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Not Found state */}
+            {searchedId && !trackedProblem && (
+              <div className="glass-card animate-fade-in-up" style={{ padding: 36, textAlign: 'center' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <AlertTriangle size={24} />
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 8, color: 'var(--color-text)' }}>
+                  {L.trackNotFound} &quot;{searchedId}&quot;
+                </h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.88rem', maxWidth: 460, margin: '0 auto 20px' }}>
+                  {L.trackNotFoundHint}
+                </p>
+              </div>
+            )}
+
+            {/* Welcome state when no search yet */}
+            {!searchedId && (
+              <div className="glass-card animate-fade-in-up" style={{ padding: 36, textAlign: 'center' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(15, 118, 110, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Search size={26} />
+                </div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 8, color: 'var(--color-text)' }}>
+                  {L.trackHeading}
+                </h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.92rem', maxWidth: 500, margin: '0 auto' }}>
+                  {L.trackSubtitle}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Success Modal ──────────────────────────────────────────── */}
@@ -827,6 +1290,21 @@ export default function CitizenPortal() {
             </div>
             <button
               className="btn btn-primary"
+              onClick={() => {
+                if (successId) {
+                  setTrackSearchId(successId);
+                  setSearchedId(successId);
+                  setActiveTab('track');
+                  setSuccessId(null);
+                }
+              }}
+              style={{ width: '100%', marginBottom: 10 }}
+            >
+              <Search size={16} />
+              {L.trackNowBtn}
+            </button>
+            <button
+              className="btn btn-secondary"
               onClick={() => setSuccessId(null)}
               style={{ width: '100%' }}
             >

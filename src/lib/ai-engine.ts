@@ -51,11 +51,42 @@ const DOMAIN_KEYWORDS: Record<Category, string[]> = {
 // ── Urgency keywords & scoring ──────────────────────────────────────────────
 
 const URGENCY_BOOSTERS: { keywords: string[]; boost: number }[] = [
-  { keywords: ['death', 'fatal', 'life-threatening', 'emergency', 'collapse'], boost: 3 },
-  { keywords: ['toxic', 'contamination', 'arsenic', 'critical', 'epidemic', 'outbreak'], boost: 2.5 },
-  { keywords: ['severe', 'acute', 'dangerous', 'hazardous', 'displacement'], boost: 2 },
-  { keywords: ['damaged', 'broken', 'urgent', 'immediate', 'shortage'], boost: 1.5 },
-  { keywords: ['chronic', 'ongoing', 'persistent', 'recurring', 'frequent'], boost: 1 },
+  {
+    keywords: [
+      'death', 'fatal', 'life-threatening', 'emergency', 'collapse',
+      'extreme', 'crisis', 'disaster', 'catastrophe', 'lethal', 'fatalities'
+    ],
+    boost: 3,
+  },
+  {
+    keywords: [
+      'toxic', 'contamination', 'arsenic', 'critical', 'epidemic', 'outbreak',
+      'poison', 'poisoning', 'poisonous', 'children', 'infant', 'student',
+      'school', 'hospitalized', 'infection', 'sick', 'illness'
+    ],
+    boost: 2.5,
+  },
+  {
+    keywords: [
+      'severe', 'acute', 'dangerous', 'hazardous', 'displacement',
+      'danger', 'polluted', 'pollution', 'unsafe', 'unpotable', 'drought',
+      'flooding', 'overflow'
+    ],
+    boost: 2,
+  },
+  {
+    keywords: [
+      'damaged', 'broken', 'urgent', 'immediate', 'shortage',
+      'failing', 'disrupted', 'blocked'
+    ],
+    boost: 1.5,
+  },
+  {
+    keywords: [
+      'chronic', 'ongoing', 'persistent', 'recurring', 'frequent'
+    ],
+    boost: 1,
+  },
 ];
 
 // ── University & Department mapping ─────────────────────────────────────────
