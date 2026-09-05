@@ -9,7 +9,6 @@ import {
   GraduationCap,
   Building2,
   Landmark,
-  Zap,
 } from 'lucide-react';
 
 const ROLE_ICONS: Record<Role, React.ReactNode> = {
@@ -36,27 +35,6 @@ export default function DemoNavbar() {
         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
       }}
     >
-      {/* Top banner */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          padding: '6px 0',
-          background: 'rgba(0,0,0,0.15)',
-          fontSize: '0.75rem',
-          fontWeight: 700,
-          color: '#fbbf24',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}
-      >
-        <Zap size={13} />
-        SIH Hackathon Live Prototype
-        <Zap size={13} />
-      </div>
-
       {/* Main nav */}
       <div
         style={{
