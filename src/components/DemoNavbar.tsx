@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useRole } from '@/lib/store';
+import { useAuth } from '@/lib/auth-store';
 import { useNotifications } from '@/lib/notifications';
 import type { Role } from '@/lib/types';
 import { ROLE_LABELS } from '@/lib/types';
@@ -14,6 +15,9 @@ import {
   CheckCheck,
   Inbox,
   Clock,
+  LogOut,
+  KeyRound,
+  Lock,
 } from 'lucide-react';
 
 const ROLE_ICONS: Record<Role, React.ReactNode> = {
@@ -25,17 +29,18 @@ const ROLE_ICONS: Record<Role, React.ReactNode> = {
 };
 
 const ROLE_TAGS: Record<Role, { name: string; color: string; bg: string }> = {
-  citizen: { name: 'Citizen', color: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
-  university: { name: 'University', color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)' },
-  industry: { name: 'Industry CSR', color: '#0284c7', bg: 'rgba(2, 132, 199, 0.1)' },
-  government: { name: 'Govt Cell', color: '#059669', bg: 'rgba(5, 150, 105, 0.1)' },
-  admin: { name: 'Govt Cell', color: '#059669', bg: 'rgba(5, 150, 105, 0.1)' },
+  citizen: { name: 'Citizen', color: '#d97706', bg: 'rgba(217, 119, 6, 0.1)' },
+  university: { name: 'University', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.1)' },
+  industry: { name: 'Industry CSR', color: '#0369a1', bg: 'rgba(3, 105, 161, 0.1)' },
+  government: { name: 'Govt Cell', color: '#047857', bg: 'rgba(4, 120, 87, 0.1)' },
+  admin: { name: 'Govt Cell', color: '#047857', bg: 'rgba(4, 120, 87, 0.1)' },
 };
 
 const ROLES: Role[] = ['citizen', 'university', 'industry', 'government'];
 
 export default function DemoNavbar() {
   const { role, setRole } = useRole();
+  const { currentUser, logout, openAuthModal } = useAuth();
   const { notifications, getUnreadCount, getForRole, markRead, markAllRead } = useNotifications();
   const [bellOpen, setBellOpen] = useState(false);
   const [activeNotifTab, setActiveNotifTab] = useState<'role' | 'all'>('role');
@@ -86,9 +91,9 @@ export default function DemoNavbar() {
         right: 0,
         width: '100%',
         zIndex: 50,
-        background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        background: '#0f172a',
+        borderBottom: '1px solid #1e293b',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
         boxSizing: 'border-box',
       }}
     >
@@ -109,8 +114,43 @@ export default function DemoNavbar() {
           </div>
         </div>
 
-        {/* Notification Bell */}
-        <div className="navbar-bell-container" ref={bellRef}>
+        {/* Actions: Auth Status & Notification Bell */}
+        <div className="navbar-actions-group">
+          {currentUser ? (
+            <div className="navbar-auth-section">
+              <div
+                className="navbar-auth-badge"
+                title={`Active session: ${currentUser.displayName} (${currentUser.organization})`}
+              >
+                <span className="auth-live-dot" />
+                <span className="auth-prefix">Logged in as:</span>
+                <span className="auth-username">{currentUser.username}</span>
+                <span className="auth-badge-label">({currentUser.badgeLabel})</span>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="navbar-logout-btn"
+                title="Logout and return to public Citizen view"
+              >
+                <LogOut size={13} />
+                <span className="logout-text">Logout</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openAuthModal()}
+              className="navbar-login-btn"
+              title="Open Demo Role Sign-In Modal"
+            >
+              <KeyRound size={13} />
+              <span>Demo Login</span>
+            </button>
+          )}
+
+          {/* Notification Bell */}
+          <div className="navbar-bell-container" ref={bellRef}>
             <button
               onClick={() => {
                 const nextOpen = !bellOpen;
@@ -121,7 +161,7 @@ export default function DemoNavbar() {
               }}
               style={{
                 position: 'relative',
-                background: bellOpen ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
+                background: bellOpen ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)',
                 border: 'none',
                 borderRadius: '50%',
                 width: 36,
@@ -153,7 +193,7 @@ export default function DemoNavbar() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #0d9488',
+                    border: '2px solid #0f172a',
                     lineHeight: 1,
                   }}
                 >
@@ -201,11 +241,11 @@ export default function DemoNavbar() {
                           width: 28,
                           height: 28,
                           borderRadius: '50%',
-                          background: 'rgba(13, 148, 136, 0.1)',
+                          background: 'rgba(217, 119, 6, 0.1)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#0d9488',
+                          color: '#d97706',
                         }}
                       >
                         {ROLE_ICONS[role]}
@@ -226,7 +266,7 @@ export default function DemoNavbar() {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#0d9488',
+                          color: '#d97706',
                           fontSize: '0.72rem',
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -313,7 +353,7 @@ export default function DemoNavbar() {
                       {totalPlatformUnread > 0 && (
                         <span
                           style={{
-                            background: 'rgba(13, 148, 136, 0.8)',
+                            background: 'rgba(217, 119, 6, 0.8)',
                             color: '#fff',
                             fontSize: '0.62rem',
                             fontWeight: 800,
@@ -361,7 +401,7 @@ export default function DemoNavbar() {
                           padding: '11px 16px',
                           borderBottom: '1px solid var(--color-border)',
                           cursor: 'pointer',
-                          background: n.read ? 'transparent' : 'rgba(13, 148, 136, 0.05)',
+                          background: n.read ? 'transparent' : 'rgba(217, 119, 6, 0.04)',
                           transition: 'background 0.15s',
                         }}
                       >
@@ -447,9 +487,9 @@ export default function DemoNavbar() {
                               {n.problemId && (
                                 <span
                                   style={{
-                                    color: '#0d9488',
+                                    color: '#d97706',
                                     fontWeight: 700,
-                                    background: 'rgba(13, 148, 136, 0.08)',
+                                    background: 'rgba(217, 119, 6, 0.08)',
                                     padding: '1px 5px',
                                     borderRadius: 3,
                                   }}
@@ -467,51 +507,101 @@ export default function DemoNavbar() {
               </div>
             )}
           </div>
-
-          {/* Role Navigation */}
-          <div className="navbar-role-wrapper">
-            <nav className="navbar-role-nav" aria-label="Portal Stakeholder Roles">
-              {ROLES.map((r) => {
-                const roleUnread = getUnreadCount(r);
-                const isActive = r === role;
-                return (
-                  <button
-                    key={r}
-                    ref={isActive ? activePillRef : undefined}
-                    onClick={() => {
-                      setRole(r);
-                      markAllRead(r);
-                    }}
-                    className={
-                      isActive ? 'role-pill role-pill-active' : 'role-pill role-pill-inactive'
-                    }
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      flexShrink: 0,
-                      position: 'relative',
-                    }}
-                    title={`Switch to ${ROLE_LABELS[r]}${roleUnread > 0 ? ` (${roleUnread} new notifications)` : ''}`}
-                  >
-                    {ROLE_ICONS[r]}
-                    <span>{ROLE_LABELS[r]}</span>
-                    {roleUnread > 0 && (
-                      <span
-                        className={`nav-role-badge ${
-                          isActive ? 'nav-role-badge-active' : 'nav-role-badge-inactive'
-                        }`}
-                        aria-label={`${roleUnread} unread notifications`}
-                      >
-                        {roleUnread > 9 ? '9+' : roleUnread}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
         </div>
-      </header>
+
+        {/* Role Navigation */}
+        <div className="navbar-role-wrapper">
+          <nav className="navbar-role-nav" aria-label="Portal Stakeholder Roles">
+            {ROLES.map((r) => {
+              const roleUnread = getUnreadCount(r);
+              const isActive = r === role;
+              const isAuthorized =
+                r === 'citizen' ||
+                (r === 'university' && currentUser?.role === 'university') ||
+                (r === 'industry' && currentUser?.role === 'industry') ||
+                ((r === 'government' || r === 'admin') &&
+                  (currentUser?.role === 'admin' || currentUser?.role === 'government'));
+
+              const handleRoleClick = () => {
+                if (r === 'citizen') {
+                  setRole('citizen');
+                  markAllRead('citizen');
+                  return;
+                }
+
+                if (r === 'university') {
+                  if (currentUser?.role === 'university') {
+                    setRole('university');
+                    markAllRead('university');
+                  } else {
+                    openAuthModal('university');
+                  }
+                  return;
+                }
+
+                if (r === 'industry') {
+                  if (currentUser?.role === 'industry') {
+                    setRole('industry');
+                    markAllRead('industry');
+                  } else {
+                    openAuthModal('industry');
+                  }
+                  return;
+                }
+
+                if (r === 'government') {
+                  if (currentUser?.role === 'admin' || currentUser?.role === 'government') {
+                    setRole('government');
+                    markAllRead('government');
+                  } else {
+                    openAuthModal('admin');
+                  }
+                  return;
+                }
+              };
+
+              return (
+                <button
+                  key={r}
+                  ref={isActive ? activePillRef : undefined}
+                  onClick={handleRoleClick}
+                  className={
+                    isActive ? 'role-pill role-pill-active' : 'role-pill role-pill-inactive'
+                  }
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    flexShrink: 0,
+                    position: 'relative',
+                  }}
+                  title={
+                    !isAuthorized
+                      ? `Requires ${ROLE_LABELS[r]} authentication (Click to authenticate)`
+                      : `Switch to ${ROLE_LABELS[r]}${roleUnread > 0 ? ` (${roleUnread} new notifications)` : ''}`
+                  }
+                >
+                  {ROLE_ICONS[r]}
+                  <span>{ROLE_LABELS[r]}</span>
+                  {!isAuthorized && !isActive && (
+                    <Lock size={11} style={{ opacity: 0.55, marginLeft: -1 }} />
+                  )}
+                  {roleUnread > 0 && (
+                    <span
+                      className={`nav-role-badge ${
+                        isActive ? 'nav-role-badge-active' : 'nav-role-badge-inactive'
+                      }`}
+                      aria-label={`${roleUnread} unread notifications`}
+                    >
+                      {roleUnread > 9 ? '9+' : roleUnread}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+    </header>
   );
 }

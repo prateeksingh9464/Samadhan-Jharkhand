@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-store';
 import { classifyProblem, findDuplicates } from '@/lib/ai-engine';
 import { useNotifications } from '@/lib/notifications';
 import {
@@ -201,6 +202,7 @@ const STATUS_STEPS: ProblemStatus[] = [
 
 export default function CitizenPortal() {
   const { problems, addProblem, updateProblem } = useStore();
+  const { currentUser, openAuthModal } = useAuth();
   const { addNotification } = useNotifications();
   const [lang, setLang] = useState<Lang>('en');
   const L = LABELS[lang];
@@ -353,6 +355,13 @@ export default function CitizenPortal() {
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+
+      // Check authentication: must be logged in as Citizen
+      if (!currentUser || currentUser.role !== 'citizen') {
+        openAuthModal('citizen');
+        return;
+      }
+
       if (!title || !district || !description || !category) return;
 
       // Show dedup warning if not dismissed
@@ -421,7 +430,7 @@ export default function CitizenPortal() {
       setDupWarning([]);
       setDupDismissed(false);
     },
-    [title, district, description, category, triage, fileNames, filePreviews, mediaBase64, geoCoords, urgencyFromScore, addProblem, generateId, submitterType, addNotification, dupWarning, dupDismissed]
+    [title, district, description, category, triage, fileNames, filePreviews, mediaBase64, geoCoords, urgencyFromScore, addProblem, generateId, submitterType, addNotification, dupWarning, dupDismissed, currentUser, openAuthModal]
   );
 
   const copyId = useCallback(() => {
@@ -912,7 +921,17 @@ export default function CitizenPortal() {
             )}
 
             {/* Submit */}
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+            <button
+              type={currentUser?.role === 'citizen' ? 'submit' : 'button'}
+              onClick={(e) => {
+                if (!currentUser || currentUser.role !== 'citizen') {
+                  e.preventDefault();
+                  openAuthModal('citizen');
+                }
+              }}
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+            >
               <Send size={16} />
               {L.submit}
             </button>
@@ -943,8 +962,8 @@ export default function CitizenPortal() {
                   height: 32,
                   borderRadius: '50%',
                   background: triage
-                    ? 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))'
-                    : 'var(--color-surface-alt)',
+                    ? 'linear-gradient(135deg, #0f172a, #1e293b)'
+                    : '#f1f5f9',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1083,8 +1102,8 @@ export default function CitizenPortal() {
                 {/* NEP note */}
                 <div
                   style={{
-                    background: 'rgba(20, 184, 166, 0.06)',
-                    border: '1px solid rgba(20, 184, 166, 0.15)',
+                    background: 'rgba(217, 119, 6, 0.06)',
+                    border: '1px solid rgba(217, 119, 6, 0.15)',
                     borderRadius: 'var(--radius-md)',
                     padding: '12px 14px',
                   }}
@@ -1233,8 +1252,8 @@ export default function CitizenPortal() {
                           fontFamily: 'monospace',
                           fontSize: '0.9rem',
                           fontWeight: 700,
-                          background: 'rgba(15, 118, 110, 0.1)',
-                          color: 'var(--color-primary-dark)',
+                          background: 'rgba(217, 119, 6, 0.1)',
+                          color: '#b45309',
                           padding: '3px 10px',
                           borderRadius: 'var(--radius-md)',
                         }}
@@ -1292,12 +1311,12 @@ export default function CitizenPortal() {
                             padding: '14px 12px',
                             borderRadius: 'var(--radius-md)',
                             background: isCurrent
-                              ? 'rgba(15, 118, 110, 0.08)'
+                              ? 'rgba(217, 119, 6, 0.08)'
                               : isPassed
                               ? 'rgba(34, 197, 94, 0.05)'
                               : 'var(--color-surface-alt)',
                             border: isCurrent
-                              ? '1.5px solid var(--color-primary)'
+                              ? '1.5px solid #d97706'
                               : isPassed
                               ? '1.5px solid rgba(34, 197, 94, 0.3)'
                               : '1px dashed var(--color-border)',
@@ -1319,7 +1338,7 @@ export default function CitizenPortal() {
                                 background: isPassed
                                   ? 'var(--color-success)'
                                   : isCurrent
-                                  ? 'var(--color-primary)'
+                                  ? '#d97706'
                                   : 'var(--color-border)',
                                 color: isPassed || isCurrent ? '#fff' : 'var(--color-text-muted)',
                               }}
@@ -1331,7 +1350,7 @@ export default function CitizenPortal() {
                                 fontSize: '0.74rem',
                                 fontWeight: 700,
                                 color: isCurrent
-                                  ? 'var(--color-primary-dark)'
+                                  ? '#b45309'
                                   : isPassed
                                   ? 'var(--color-success)'
                                   : 'var(--color-text-muted)',
@@ -1550,7 +1569,7 @@ export default function CitizenPortal() {
             {/* Welcome state when no search yet */}
             {!searchedId && (
               <div className="glass-card animate-fade-in-up" style={{ padding: 36, textAlign: 'center' }}>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(15, 118, 110, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <Search size={26} />
                 </div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 8, color: 'var(--color-text)' }}>
@@ -1722,6 +1741,7 @@ function CitizenCommentSection({
   lang: 'en' | 'hi';
 }) {
   const { updateProblem } = useStore();
+  const { currentUser, openAuthModal } = useAuth();
   const { addNotification } = useNotifications();
   const [commentText, setCommentText] = useState('');
 
@@ -1729,11 +1749,17 @@ function CitizenCommentSection({
 
   const handlePost = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!currentUser || currentUser.role !== 'citizen') {
+      openAuthModal('citizen');
+      return;
+    }
+
     if (!commentText.trim()) return;
 
     const newComment: Comment = {
       id: `c-cit-${Date.now()}`,
-      author: lang === 'hi' ? 'नागरिक प्रस्तुतकर्ता' : 'Citizen Submitter',
+      author: currentUser.displayName || (lang === 'hi' ? 'नागरिक प्रस्तुतकर्ता' : 'Citizen Submitter'),
       role: 'citizen',
       text: commentText.trim(),
       timestamp: new Date().toISOString(),
@@ -1759,7 +1785,7 @@ function CitizenCommentSection({
 
   const ROLE_COLORS: Record<string, string> = {
     citizen: '#2563eb',
-    university: '#7c3aed',
+    university: '#4338ca',
     industry: '#0284c7',
     government: '#059669',
     admin: '#059669',

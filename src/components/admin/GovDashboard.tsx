@@ -53,7 +53,7 @@ const STATUS_CONFIG: Record<
 > = {
   Submitted: { label: 'Submitted', cls: 'badge-submitted', step: 1, color: '#3b82f6' },
   Routed_To_HEI: { label: 'Routed to HEI', cls: 'badge-routed', step: 2, color: '#f59e0b' },
-  In_Proposal: { label: 'In Proposal', cls: 'badge-proposal', step: 3, color: '#8b5cf6' },
+  In_Proposal: { label: 'In Proposal', cls: 'badge-proposal', step: 3, color: '#6366f1' },
   Industry_Pledged: { label: 'Industry Pledged', cls: 'badge-pledged', step: 4, color: '#10b981' },
   Pilot_Deployed: { label: 'Pilot Deployed', cls: 'badge-deployed', step: 5, color: '#06b6d4' },
 };
@@ -301,12 +301,12 @@ export default function GovDashboard() {
                 width: 50,
                 height: 50,
                 borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, #065f46 0%, #047857 50%, #10b981 100%)',
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                boxShadow: '0 4px 14px rgba(6, 95, 70, 0.25)',
+                boxShadow: '0 4px 14px rgba(15, 23, 42, 0.35)',
               }}
             >
               <Landmark size={26} />
@@ -319,8 +319,8 @@ export default function GovDashboard() {
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
-                    color: '#047857',
-                    background: 'rgba(4, 120, 87, 0.1)',
+                    color: '#d97706',
+                    background: 'rgba(217, 119, 6, 0.1)',
                     padding: '2px 8px',
                     borderRadius: 'var(--radius-full)',
                   }}
@@ -335,7 +335,7 @@ export default function GovDashboard() {
                     gap: 5,
                     fontSize: '0.72rem',
                     fontWeight: 600,
-                    color: '#059669',
+                    color: '#d97706',
                   }}
                 >
                   <span
@@ -343,7 +343,7 @@ export default function GovDashboard() {
                       width: 7,
                       height: 7,
                       borderRadius: '50%',
-                      background: '#10b981',
+                      background: '#d97706',
                       display: 'inline-block',
                       animation: 'pulse-glow 2s infinite',
                     }}
@@ -373,7 +373,7 @@ export default function GovDashboard() {
                 fontWeight: 600,
               }}
             >
-              <ShieldCheck size={16} color="#047857" />
+              <ShieldCheck size={16} color="#d97706" />
               <span>Section 135 Monitoring Cell</span>
             </div>
             <div
@@ -387,7 +387,7 @@ export default function GovDashboard() {
                 fontWeight: 600,
               }}
             >
-              <Compass size={16} color="#0284c7" />
+              <Compass size={16} color="#64748b" />
               <span>24 Districts Synchronized</span>
             </div>
           </div>
@@ -422,7 +422,7 @@ export default function GovDashboard() {
           subtext="Under investigation by IIT, NIT, BIT & BAU"
           icon={<GraduationCap size={22} />}
           badge="6 Universities"
-          color="#8b5cf6"
+          color="#6366f1"
         />
 
         {/* KPI 3 */}
@@ -512,7 +512,7 @@ export default function GovDashboard() {
         >
           <div>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Layers size={18} color="#047857" />
+              <Layers size={18} color="#d97706" />
               Statewide Innovation Lifecycle Pipeline
             </h2>
             <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
@@ -524,8 +524,8 @@ export default function GovDashboard() {
               onClick={() => setStatusFilter('all')}
               style={{
                 fontSize: '0.72rem',
-                color: '#047857',
-                background: 'rgba(4, 120, 87, 0.08)',
+                color: '#d97706',
+                background: 'rgba(217, 119, 6, 0.08)',
                 border: 'none',
                 padding: '4px 10px',
                 borderRadius: 'var(--radius-full)',
@@ -638,7 +638,7 @@ export default function GovDashboard() {
         >
           <div>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <MapPin size={18} color="#047857" />
+              <MapPin size={18} color="#d97706" />
               District-Wise Innovation & HEI Resolution Index
             </h2>
             <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
@@ -669,8 +669,8 @@ export default function GovDashboard() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 'var(--radius-md)',
-                  background: isSelected ? 'rgba(4, 120, 87, 0.08)' : 'var(--color-surface-alt)',
-                  border: `1.5px solid ${isSelected ? '#047857' : 'transparent'}`,
+                  background: isSelected ? 'rgba(217, 119, 6, 0.08)' : 'var(--color-surface-alt)',
+                  border: `1.5px solid ${isSelected ? '#d97706' : 'transparent'}`,
                   cursor: 'pointer',
                   transition: 'all var(--transition-base)',
                 }}
@@ -760,7 +760,7 @@ export default function GovDashboard() {
         >
           <div>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FileCheck2 size={20} color="#047857" />
+              <FileCheck2 size={20} color="#d97706" />
               Master Pipeline Audit Table
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
@@ -1022,7 +1022,7 @@ export default function GovDashboard() {
                     >
                       {/* ID & Date */}
                       <td style={{ padding: '12px 12px', borderTopLeftRadius: 'var(--radius-md)', borderBottomLeftRadius: 'var(--radius-md)' }}>
-                        <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', color: '#047857' }}>
+                        <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', color: '#d97706' }}>
                           {p.id}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
@@ -1069,13 +1069,13 @@ export default function GovDashboard() {
                             color: 'var(--color-text)',
                           }}
                         >
-                          <GraduationCap size={13} color="#8b5cf6" style={{ flexShrink: 0 }} />
+                          <GraduationCap size={13} color="#6366f1" style={{ flexShrink: 0 }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {p.targetUniversity || 'Pending HEI Assignment'}
                           </span>
                         </div>
                         {p.assignedTeam ? (
-                          <div style={{ fontSize: '0.7rem', color: '#8b5cf6', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#6366f1', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {p.assignedTeam}
                           </div>
                         ) : (
@@ -1327,7 +1327,7 @@ function AuditDrawer({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#047857', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#d97706', fontWeight: 700 }}>
                 {problem.id}
               </span>
               <span className={`badge ${sb.cls}`}>{sb.label}</span>
@@ -1438,7 +1438,7 @@ function AuditDrawer({
                 {problem.targetUniversity || 'Pending Assignment'}
               </div>
               {problem.assignedTeam && (
-                <div style={{ fontSize: '0.75rem', color: '#8b5cf6' }}>
+                <div style={{ fontSize: '0.75rem', color: '#6366f1' }}>
                   Team: {problem.assignedTeam}
                 </div>
               )}
@@ -1818,7 +1818,7 @@ function GovCommentSection({ problem }: { problem: Problem }) {
 
   const ROLE_COLORS: Record<string, string> = {
     citizen: '#2563eb',
-    university: '#7c3aed',
+    university: '#4338ca',
     industry: '#0284c7',
     government: '#059669',
     admin: '#059669',

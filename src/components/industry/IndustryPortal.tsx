@@ -130,7 +130,7 @@ export default function IndustryPortal() {
                 width: 44,
                 height: 44,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0369a1, #38bdf8)',
+                background: 'linear-gradient(135deg, #0f172a, #334155)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -164,7 +164,7 @@ export default function IndustryPortal() {
             }}
           >
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Building2 size={15} color="#0369a1" /> Sponsor Entity:
+              <Building2 size={15} color="#d97706" /> Sponsor Entity:
             </label>
             <select
               className="input-field"
@@ -212,7 +212,7 @@ export default function IndustryPortal() {
           label="Section 135 Eligible"
           value="100%"
           icon={<ShieldCheck size={18} />}
-          color="#7c3aed"
+          color="#4338ca"
         />
       </div>
 
@@ -879,8 +879,8 @@ function PledgeModal({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Handshake size={16} color="#0369a1" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0369a1' }}>
+              <Handshake size={16} color="#d97706" />
+              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#d97706' }}>
                 Pledge CSR Grant
               </span>
             </div>
@@ -946,7 +946,7 @@ function PledgeModal({
                 marginBottom: 6,
               }}
             >
-              <Building2 size={15} color="#0369a1" /> Sponsoring Corporate Foundation *
+              <Building2 size={15} color="#d97706" /> Sponsoring Corporate Foundation *
             </label>
             <select
               className="input-field"
@@ -1028,7 +1028,7 @@ function PledgeModal({
                 style={{
                   fontSize: '2.2rem',
                   fontWeight: 800,
-                  color: '#0369a1',
+                  color: '#d97706',
                   lineHeight: 1,
                   marginBottom: 4,
                 }}
@@ -1054,10 +1054,10 @@ function PledgeModal({
                   height: 6,
                   borderRadius: 'var(--radius-full)',
                   appearance: 'none',
-                  background: `linear-gradient(to right, #0369a1 ${((amount - 50000) / 950000) * 100}%, var(--color-border) ${((amount - 50000) / 950000) * 100}%)`,
+                  background: `linear-gradient(to right, #d97706 ${((amount - 50000) / 950000) * 100}%, var(--color-border) ${((amount - 50000) / 950000) * 100}%)`,
                   outline: 'none',
                   cursor: 'pointer',
-                  accentColor: '#0369a1',
+                  accentColor: '#d97706',
                 }}
               />
               <div
@@ -1103,9 +1103,9 @@ function PledgeModal({
               gap: 10,
             }}
           >
-            <ShieldCheck size={22} color="#7c3aed" style={{ flexShrink: 0 }} />
+            <ShieldCheck size={22} color="#6d28d9" style={{ flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed', marginBottom: 2 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6d28d9', marginBottom: 2 }}>
                 Section 135 — Companies Act Compliance
               </div>
               <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
@@ -1204,7 +1204,7 @@ function PledgeModal({
                       <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                         {m.pct}%
                       </span>
-                      <span style={{ fontWeight: 700, color: '#0369a1' }}>
+                      <span style={{ fontWeight: 700, color: '#d97706' }}>
                         ₹{m.amount.toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -1224,8 +1224,8 @@ function PledgeModal({
               width: '100%',
               padding: '12px 20px',
               fontSize: '0.92rem',
-              background: 'linear-gradient(135deg, #0369a1, #38bdf8)',
-              boxShadow: '0 2px 12px rgba(3, 105, 161, 0.3)',
+              background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+              boxShadow: '0 2px 12px rgba(217, 119, 6, 0.3)',
               marginTop: 18,
             }}
             onClick={() => onAuthorize(amount, sponsorEntity)}
@@ -1311,7 +1311,7 @@ function SuccessReceipt({
             padding: '6px 14px',
             borderRadius: 'var(--radius-full)',
             background: 'rgba(124, 58, 237, 0.08)',
-            color: '#7c3aed',
+            color: '#6d28d9',
             fontSize: '0.75rem',
             fontWeight: 700,
             marginBottom: 20,
@@ -1466,7 +1466,7 @@ function PledgedDetailModal({
                 {problem.targetUniversity}
               </div>
               {problem.assignedTeam && (
-                <div style={{ fontSize: '0.75rem', color: '#7c3aed' }}>
+                <div style={{ fontSize: '0.75rem', color: '#4338ca' }}>
                   {problem.assignedTeam}
                 </div>
               )}
@@ -1590,7 +1590,7 @@ function IndustryCommentSection({ problem }: { problem: Problem }) {
 
   const ROLE_COLORS: Record<string, string> = {
     citizen: '#2563eb',
-    university: '#7c3aed',
+    university: '#4338ca',
     industry: '#0284c7',
     government: '#059669',
     admin: '#059669',

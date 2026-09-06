@@ -114,7 +114,7 @@ export default function UniversityPortal() {
                 width: 44,
                 height: 44,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                background: 'linear-gradient(135deg, #4338ca, #6366f1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -137,7 +137,7 @@ export default function UniversityPortal() {
           {/* Institution Selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--color-surface)', padding: '6px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <GraduationCap size={15} color="#7c3aed" /> Switch HEI:
+              <GraduationCap size={15} color="#4338ca" /> Switch HEI:
             </label>
             <select
               className="input-field"
@@ -166,13 +166,13 @@ export default function UniversityPortal() {
         <StatCard
           label="Incoming Challenges"
           value={inbox.length}
-          color="#7c3aed"
+          color="#4338ca"
           icon={<AlertTriangle size={18} />}
         />
         <StatCard
           label="Proposals Submitted"
           value={adopted.filter((p) => p.status === 'In_Proposal').length}
-          color="#0f766e"
+          color="#d97706"
           icon={<FileText size={18} />}
         />
         <StatCard
@@ -496,7 +496,7 @@ function ProblemRow({
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Clock size={12} /> {date}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#7c3aed', fontWeight: 600 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#4338ca', fontWeight: 600 }}>
             <GraduationCap size={12} /> {problem.targetUniversity || 'Unassigned HEI'}
           </span>
           {adopted && problem.assignedTeam && (
@@ -702,8 +702,8 @@ function DetailDrawer({
             style={{
               marginTop: 18,
               padding: '16px',
-              background: 'rgba(124, 58, 237, 0.05)',
-              border: '1px solid rgba(124, 58, 237, 0.12)',
+              background: 'rgba(79, 70, 229, 0.05)',
+              border: '1px solid rgba(79, 70, 229, 0.12)',
               borderRadius: 'var(--radius-md)',
             }}
           >
@@ -712,7 +712,7 @@ function DetailDrawer({
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                color: '#7c3aed',
+                color: '#4338ca',
                 letterSpacing: '0.04em',
                 marginBottom: 10,
                 display: 'flex',
@@ -739,8 +739,8 @@ function DetailDrawer({
               style={{
                 marginTop: 18,
                 padding: '16px',
-                background: 'rgba(124, 58, 237, 0.04)',
-                border: '1px solid rgba(124, 58, 237, 0.15)',
+                background: 'rgba(79, 70, 229, 0.04)',
+                border: '1px solid rgba(79, 70, 229, 0.15)',
                 borderRadius: 'var(--radius-md)',
               }}
             >
@@ -749,7 +749,7 @@ function DetailDrawer({
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
-                  color: '#7c3aed',
+                  color: '#4338ca',
                   letterSpacing: '0.04em',
                   marginBottom: 12,
                   display: 'flex',
@@ -760,7 +760,7 @@ function DetailDrawer({
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <CheckSquare size={13} /> Project Milestones & Progress
                 </span>
-                <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.72rem', color: '#4338ca', fontWeight: 600 }}>
                   {problem.milestones.filter((m) => m.completed).length} of {problem.milestones.length} Completed
                 </span>
               </div>
@@ -806,7 +806,7 @@ function DetailDrawer({
                             );
                           }
                         }}
-                        style={{ cursor: 'pointer', accentColor: '#7c3aed', width: 16, height: 16 }}
+                        style={{ cursor: 'pointer', accentColor: '#4338ca', width: 16, height: 16 }}
                       />
                       <span
                         style={{
@@ -872,7 +872,7 @@ function CommentThread({ problem }: { problem: Problem }) {
 
   const ROLE_COLORS: Record<string, string> = {
     citizen: '#3b82f6',
-    university: '#7c3aed',
+    university: '#4338ca',
     industry: '#0ea5e9',
     government: '#059669',
     admin: '#059669',
@@ -1096,8 +1096,8 @@ function AdoptModal({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <Beaker size={16} color="#7c3aed" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#7c3aed' }}>
+              <Beaker size={16} color="#4338ca" />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4338ca' }}>
                 Adopt Challenge & Form Team
               </span>
             </div>
@@ -1131,9 +1131,9 @@ function AdoptModal({
               justifyContent: 'space-between',
               marginBottom: 20,
               padding: '10px 14px',
-              background: 'rgba(124, 58, 237, 0.05)',
+              background: 'rgba(79, 70, 229, 0.05)',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(124, 58, 237, 0.15)',
+              border: '1px solid rgba(79, 70, 229, 0.15)',
               flexWrap: 'wrap',
               gap: 10,
             }}
@@ -1145,7 +1145,7 @@ function AdoptModal({
               type="button"
               onClick={handleAutofillSuggested}
               style={{
-                background: '#7c3aed',
+                background: '#4338ca',
                 color: '#fff',
                 border: 'none',
                 padding: '6px 12px',
@@ -1157,7 +1157,7 @@ function AdoptModal({
                 alignItems: 'center',
                 gap: 5,
                 flexShrink: 0,
-                boxShadow: '0 2px 6px rgba(124, 58, 237, 0.3)',
+                boxShadow: '0 2px 6px rgba(67, 56, 202, 0.3)',
               }}
               title="Auto-fill with relevant department and category data"
             >
@@ -1272,8 +1272,8 @@ function AdoptModal({
             <div
               style={{
                 padding: '10px 14px',
-                background: 'rgba(20, 184, 166, 0.06)',
-                border: '1px solid rgba(20, 184, 166, 0.15)',
+                background: 'rgba(217, 119, 6, 0.06)',
+                border: '1px solid rgba(217, 119, 6, 0.15)',
                 borderRadius: 'var(--radius-md)',
                 fontSize: '0.78rem',
                 color: 'var(--color-primary)',
@@ -1407,7 +1407,7 @@ function SuccessToast({
             width: 56,
             height: 56,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+            background: 'linear-gradient(135deg, #d97706, #f59e0b)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1467,7 +1467,7 @@ function InfoRow({
 function MiniField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 2 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 2 }}>
         {label}
       </div>
       <div style={{ fontSize: '0.82rem', color: 'var(--color-text)', lineHeight: 1.4 }}>{value}</div>
